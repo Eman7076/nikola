@@ -1,9 +1,11 @@
-# D5.2 — JamePeng llama-cpp-python 0.3.49 (CUDA + patches/)
+# D5.3 — JamePeng 0.3.49 + Pillow (CUDA + patches/)
 
-**Court Contract 001 · Deliverable D5.2** (src pin; builds on D5.1)  
+**Court Contract 001 · Deliverable D5.3** (Pillow runtime dep; builds on D5.2)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
 House loads models **in-process** via Python bindings (Poet, Familiar, Spockette). Spock: D5 shipped C++ `llama-cpp` binaries only — wrong target. D5.1 added **`llama-cpp-python`** with **CUDA** and a **`d5/patches/`** hook. **D5.2** overrides **`src`** to the **JamePeng fork** at **0.3.49** (House’s tree) so House patches can apply. Keeps **`llama-server`** in the same shell.
+
+**D5.3:** Court's real CUDA build on the rig compiled the fork wheel (~7.5 min) then failed only at `pythonRuntimeDepsCheckHook` (`pillow not installed`). Stock recipe deps stayed at 0.3.9's four packages. **Fact:** `overrideAttrs` on `dependencies` does not stick on this pin; append `pillow` to **`propagatedBuildInputs`** (recipe already mirrors the four into PBI).
 
 Text/Nix for Spock/Eli to apply — Nikola does not SSH to Court machines and this Grok Bot VM has **no NVIDIA GPU** (no CUDA inference was run here).
 
@@ -118,7 +120,7 @@ Nikola **adjusted what instantiate needs** (`version` + `src` + `fetchSubmodules
 | Submodules | already `true` upstream | required | **Done** — keep `fetchSubmodules = true` |
 | `scikit-build-core` | 0.11.1 on pin | pyproject wants `>=0.9.2` | **GUESS: OK** — pin satisfies |
 | `numpy` | 2.2.5 | `>=1.21.6,<=2.3.2` | **GUESS: OK** — within upper bound |
-| `Pillow` | not in stock deps | `Pillow>=9.5.0` in pyproject | **GUESS: may need** `dependencies` append for vision/import paths; not added for D5.2 eval. Court: if `import pillow` / wheel metadata complains, add `pkgs.python3Packages.pillow` |
+| `Pillow` | not in stock 0.3.9 deps | `Pillow>=9.5.0` in pyproject | **Fact (Court D5.2 build):** hook failed `pillow not installed`. **D5.3:** append to **`propagatedBuildInputs`** (measured: `dependencies` overrideAttrs does not stick; PBI does). |
 | setuptools / scikit-build pins | stock build-system list | fork uses scikit-build-core only | **GUESS: stock build-system still works** (same backend); watch for stricter cmake floor |
 | House patches vs tree | target 0.3.49 | 0.3.49 | **Fact for D5.2 intent** — empty `patches/` until Court drops real files |
 | Dummy hunk | was `__version__ = "0.3.9"` | `"0.3.49"` | **Done** — dummy retargeted; check still instantiate-only |

@@ -1,4 +1,4 @@
-# D5.2 — JamePeng llama-cpp-python 0.3.49 src (submodules) + CUDA + patches/.
+# D5.3 — JamePeng 0.3.49 + Pillow runtime dep; D5.2 src/submodules + CUDA + patches/.
 # Author: Nikola
 #
 # Stock nixpkgs 25.05 ships abetlen llama-cpp-python 0.3.9. House runs the
@@ -55,6 +55,16 @@ let
         fetchSubmodules = true;
       };
       patches = (old.patches or [ ]) ++ patchFiles;
+      # D5.3: fork pyproject needs Pillow>=9.5.0; stock 0.3.9 recipe omits it.
+      # Fact: recipe declares `dependencies = [ diskcache jinja2 numpy typing-extensions ]`
+      # and buildPythonPackage mirrors those into propagatedBuildInputs (+ python3).
+      # Fact (measured on this pin): overrideAttrs on `dependencies` does NOT stick —
+      # evaluated drv.dependencies stays the original four. Append pillow to
+      # propagatedBuildInputs instead; that is what lands in the check env
+      # (pythonRuntimeDepsCheckHook failed Court with "pillow not installed").
+      propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
+        pkgs.python3Packages.pillow
+      ];
       # CMake 3.24+ — semicolon-separated arch list (incl. 89, 120 on this pin).
       CUDAARCHS = arches;
     }
