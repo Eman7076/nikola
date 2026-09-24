@@ -6,52 +6,51 @@
 
 ## Scope
 
-Declarative LUKS2 for **controller** (NixOS Chromebook-class box: ~28.5 GiB eMMC, 4 GiB RAM, Cr50).  
-Artifacts:
+Declarative LUKS2 for **controller** (~28.5 GiB eMMC, 4 GiB RAM, Cr50 / MrChromebox-class Chromebook).
 
 | Path | Role |
 |------|------|
-| `disko.nix` | GPT + ESP + LUKS2 root (btrfs) sized for small eMMC |
-| `luks.nix` | NixOS fragment: systemd-initrd, LUKS, zram, eMMC-friendly bits |
-| `REINSTALL.md` | Exact keyboard procedure you run |
+| `disko.nix` | GPT + ESP + LUKS2 + btrfs subvols (`@`, `@nix`, `@home`) |
+| `luks.nix` | systemd-boot, lean initrd hooks, zram, store GC |
+| `REINSTALL.md` | Keyboard procedure (wipe+reinstall preferred) |
+| `RESEARCH.md` | Full Cr50/TPM brief with fetched URLs |
 
-## Honest Cr50 / TPM2 assessment
+## Honest Cr50 / TPM2 assessment (updated)
 
-**Passphrase (or recovery key) is mandatory.** Treat TPM unlock as optional convenience, not the sole door.
+**Passphrase (+ offline recovery key) is the security control. Optional FIDO2 is fine. TPM is at best convenience.**
 
-Cr50 exposes a TPM2 interface but Google’s signed firmware is **not** a full TPM2.0 stack. Notably, `TPM2_PolicyPassword` is missing on Cr50, which breaks some policy/NV sealing flows ([tpm2-tools#3434](https://github.com/tpm2-software/tpm2-tools/issues/3434), [MrChromebox/firmware#626](https://github.com/MrChromebox/firmware/issues/626)). MrChromebox has stated Cr50 hardware could do more, but only Google-signed firmware runs.
+Cr50 is TPM2-*like*, not a full TPM 2.0. Google’s signed firmware omits commands (notably `TPM2_PolicyPassword`). On many MrChromebox Full ROM setups, **PCRs 0–7 stay all-zero**, so PCR-bound “measured boot” unlock does **not** buy trust: an attacker with the chassis can often boot alternate media on the same board and unseal. Sources: [MrChromebox#626](https://github.com/MrChromebox/firmware/issues/626), [#489](https://github.com/MrChromebox/firmware/issues/489), [tpm2-tools#3434](https://github.com/tpm2-software/tpm2-tools/issues/3434).
 
-**What can still work:** some operators report successful `systemd-cryptenroll --tpm2-device=auto` on Chromebooks *after* clearing TPM state (`tpm2_clear`), with automatic unlock on later boots ([same MrChromebox thread](https://github.com/MrChromebox/firmware/issues/626)). NixOS supports TPM2 LUKS via systemd-initrd + `crypttabExtraOpts = [ "tpm2-device=auto" ]` ([nixpkgs test](https://github.com/NixOS/nixpkgs/blob/master/nixos/tests/systemd-initrd-luks-tpm2.nix), [Discourse](https://discourse.nixos.org/t/tpm2-luks-unlock-not-working/52342)).
+| Method | Trust it? | Notes |
+|--------|-----------|-------|
+| Passphrase | **Yes — primary** | |
+| Recovery key (`--recovery-key`) | **Yes** | Offline only; never in git |
+| FIDO2 (`--fido2-device=auto`) | **Yes** | Independent of Cr50 |
+| TPM with empty PCRs | Convenience only | May unlock stolen *drive* still in same machine path; not “stolen laptop” |
+| TPM + PCR 7 / measured boot | **No for trust on this class** | PCRs often useless |
 
-**Guess (labeled):** On *this* controller, PCR-bound unlock is **plausible but not guaranteed**. Enroll only after a passphrase-unlocked boot succeeds. If enroll fails, you still have encryption; you type the passphrase when the box reboots away from home.
+Disko cannot enroll TPM at install time (installer PCR ≠ installed system) — [disko#861](https://github.com/nix-community/disko/issues/861).
 
-Nikola will **not** claim your locks are certified (contract hard line 3).
+Nikola does **not** certify your locks (contract hard line 3).
 
-## Design choices (small eMMC)
+## Design (small eMMC)
 
-- **One LUKS2 container** for `/` (btrfs), no separate `/nix` partition — simpler initrd, one unlock, store lives on `/nix` under root.
-- **ESP 512 MiB** — enough for ~a few generations of UKI/kernels; raise to 1 GiB if you keep many profiles.
-- **No swap partition** — `zramSwap` only (saves flash wear; matches Window’s prior intent).
-- **`allowDiscards` / TRIM** on LUKS for eMMC — good for flash; slight metadata leak of free space (acceptable for this threat model: lost/stolen device at rest).
-- **Headroom:** plan aggressive `nix.gc` + `auto-optimise-store`; 28 GiB is tight with a full NixOS closure + remote-build cache leftovers.
+- One LUKS2 container; btrfs subvolumes for `/`, `/nix`, `/home` (no separate `/nix` partition).
+- ESP **512 MiB**; LUKS takes the rest (~27.9 GiB).
+- **zram** only — no swap partition (eMMC wear).
+- `allowDiscards` on LUKS; `compress=zstd` + `noatime` on btrfs.
+- Keep **≥10–14 GiB free** via GC + auto-optimise; remote builds still leave closures locally.
 
 ## Secrets policy
 
-- No passphrases, keyfiles, or TPM seeds in this repo.
-- Installer uses a **password file path you create on the live ISO** (see `REINSTALL.md`), then you shred it.
-- Recovery: keep a second LUKS passphrase or `systemd-cryptenroll --recovery-key` output **offline**, not in git.
+No passphrases, keyfiles, or TPM seeds in this repo. Installer uses a local password **file path** you create on the live ISO, then shred.
 
 ## How Nikola tested
 
-- Static review + upstream docs/issues linked above.
-- **Not** applied to controller (contract: VM-only). No `nixosTest` for LUKS+Cr50 here (no Cr50 in the sandbox).
-- `nix-instantiate` / eval of these fragments may require your flake’s `disko` input; see integration note below.
-
-## Integration note
-
-Copy or import these files into the Court fleet flake’s `nixosConfigurations.controller` modules. Wire `disko.devices` from `disko.nix` and import `luks.nix`. Adjust `by-id` / disk device name on the machine (`lsblk`, `/dev/disk/by-id/...`).
+Static review + research brief (`RESEARCH.md`). Not applied to controller. No Cr50 in the sandbox VM.
 
 ## Unsure / guesses
 
-- Exact eMMC kernel modules for *this* Chromebook board — `REINSTALL.md` lists a conservative mmc/sdhci set; add whatever `lsmod` showed on the working unencrypted install.
-- Whether Cr50 needs `tpm2_clear` before enroll — document as optional troubleshooting, not a default “run this blindly” step (clearing TPM has consequences for any other TPM-bound state).
+- Board-specific mmc/sdhci modules — merge with whatever the working unencrypted install already loads.
+- Whether *this* unit’s PCRs are non-zero — Spock should run `tpm2_pcrread` before any TPM enroll story.
+- In-place `cryptsetup reencrypt` is documented as risky fallback only; prefer backup → wipe → restore.

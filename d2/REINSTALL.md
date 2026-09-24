@@ -4,35 +4,33 @@ Nikola does not run these. No `curl | sh`. Read fully before touching the disk.
 
 ## 0. Preconditions
 
-- Court backups of controller config + any state you care about (flake, `/var` bits, SSH host keys if you want to keep them).
-- NixOS installer USB/ISO matching your generation (26.05 line is fine).
-- A strong passphrase chosen offline; you will type it into a **local file on the installer**, never into git.
-- Laptop on power; 30–90 minutes depending on restore.
+- Verified backups (flake, state you need, optional SSH host keys).
+- NixOS installer matching your generation.
+- Strong LUKS passphrase chosen offline.
+- Optional: FIDO2 token if you want token unlock later.
+- Power connected; prefer wipe+reinstall over in-place reencrypt.
 
 ## 1. Identify the eMMC
-
-Boot installer → networking if needed → root shell:
 
 ```bash
 lsblk -o NAME,SIZE,MODEL,TRAN,TYPE
 ls -l /dev/disk/by-id/
 ```
 
-Note the **by-id** path for the internal eMMC (not the USB installer).  
-Edit `disko.nix`: set `disko.devices.disk.controller.device = "/dev/disk/by-id/…";`
+Set `disko.devices.disk.controller.device` to the **by-id** path (not the USB installer).
 
-## 2. Create a one-time password file on the installer
+## 2. One-time password file on the installer
 
 ```bash
 install -m 600 /dev/null /tmp/controller-luks-pass
-# put ONLY the passphrase in that file (your editor or printf); no trailing commentary
+# write ONLY the passphrase into that file
 ```
 
-You will point disko at this path for format. Shred after install.
+Point disko LUKS `passwordFile` at `/tmp/controller-luks-pass` in an installer-only overlay. Never commit it.
 
 ## 3. Apply disko (DESTROYS the disk)
 
-From your flake checkout on the installer (USB copy, `git clone` of Court flake with D2 files imported):
+From the Court flake with D2 imported:
 
 ```bash
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko -- \
@@ -40,72 +38,62 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
   --flake '.#controller'
 ```
 
-Or your project’s documented `disko-install` / `nixos-install` path if you already have one.  
-**Confirm the device string twice.** Wrong by-id = wrong disk.
+Confirm the device string twice.
 
-If your disko version expects `passwordFile` on the LUKS content, set it in a temporary installer-only overlay:
-
-```nix
-disko.devices.disk.controller.content.partitions.luks.content.passwordFile = "/tmp/controller-luks-pass";
-```
-
-## 4. Install NixOS into the opened mapper
+## 4. nixos-install
 
 ```bash
 sudo nixos-install --flake '.#controller'
-# set root password when prompted (separate from LUKS passphrase)
 ```
 
-## 5. First boot (passphrase)
+## 5. First boot — passphrase
 
-Reboot, remove installer media.  
-At cryptsetup prompt: enter the **LUKS passphrase**.  
-Confirm multi-user target, Tailscale/ssh, remote-build to rig still work.
+Unlock with the LUKS passphrase. Verify ssh/Tailscale/remote-build.  
+Shred `/tmp/controller-luks-pass` if it still exists on the installer medium.
+
+## 6. Recovery key (recommended)
 
 ```bash
-shred -u /tmp/controller-luks-pass   # if the installer still mounted; else already gone
+sudo systemd-cryptenroll --recovery-key /dev/disk/by-uuid/<LUKS-UUID>
 ```
 
-## 6. Optional TPM2 enroll (Cr50 may refuse)
+Store the printed recovery key **offline**. Not in git.
 
-Only after passphrase boot works:
+## 7. Optional FIDO2 (preferred token path)
 
 ```bash
-# Inspect TPM
+sudo systemd-cryptenroll --fido2-device=auto /dev/disk/by-uuid/<LUKS-UUID>
+```
+
+Enable `boot.initrd.systemd.enable` and add `crypttabExtraOpts = [ "fido2-device=auto" ];` (or disko equivalent), then `nixos-rebuild switch`.
+
+## 8. Optional TPM — convenience only on Cr50
+
+```bash
 sudo tpm2_getcap properties-fixed | head
-sudo systemd-cryptenroll /dev/disk/by-partlabel/cryptroot
-# expect to see passphrase slot; no TPM yet
-
-# Enroll TPM (keeps passphrase slot)
-sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs=7 /dev/disk/by-partlabel/cryptroot
+sudo tpm2_pcrread
 ```
 
-If enroll errors (unsupported command / Cr50 limits):
+If PCRs 0–7 are all zero, **stop** — do not sell TPM unlock as security. Passphrase/FIDO2 remain the doors.
 
-1. Keep using passphrase — **encryption still holds**.
-2. Optional recovery key (store offline, not in git):
+If Spock still wants convenience enroll with empty PCRs:
 
 ```bash
-sudo systemd-cryptenroll --recovery-key /dev/disk/by-partlabel/cryptroot
+sudo systemd-cryptenroll --tpm2-device=auto --tpm2-pcrs= /dev/disk/by-uuid/<LUKS-UUID>
 ```
 
-3. Only if Spock agrees: investigate `tpm2_clear` implications before clearing ownership ([MrChromebox#626](https://github.com/MrChromebox/firmware/issues/626)). Clearing is disruptive; do not treat it as routine.
+`tpm2_clear` is disruptive; only with Spock’s explicit OK.
 
-Ensure flake already has systemd-initrd + `crypttabExtraOpts` including `tpm2-device=auto` (see `disko.nix` / `luks.nix`), then rebuild:
+## 9. Travel checklist
 
-```bash
-sudo nixos-rebuild switch --flake '.#controller'
-```
-
-Reboot once. If TPM unlock works, you should get a short timeout then boot; if not, passphrase still unlocks.
-
-## 7. Travel / lost device checklist
-
-- Passphrase memorized or in a password manager Spock/Eli control — not in the fleet git repo.
+- Passphrase in a manager Eli/Spock control — not in fleet git.
 - Recovery key offline.
-- Remote wipe is **not** provided by LUKS alone; plan separately if needed.
-- After firmware or Secure Boot changes, PCR7 enrollments often break → unlock with passphrase → re-enroll TPM.
+- After firmware/bootloader changes, re-test unlock; re-enroll tokens if needed.
+
+## In-place encrypt (discouraged)
+
+Only if wipe is impossible: live USB, verified backup, `cryptsetup reencrypt --encrypt --type luks2 --reduce-device-size 32M …`, then wire initrd. Power loss mid-reencrypt risks the filesystem. Prefer section 3–5.
 
 ## Rollback
 
-Boot installer → if you still have backups, re-disko without LUKS from last known good unencrypted layout, or restore from image backup taken in step 0. There is no in-place “undo LUKS” without reformat or restore.
+Installer + restore from step 0 backups / previous unencrypted image. No clean in-place “undo LUKS” without reformat or restore.

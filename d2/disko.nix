@@ -1,20 +1,15 @@
 # D2 — disko layout for controller (~28.5 GiB eMMC)
 # Author: Nikola (Court Contract 001)
 #
-# IMPORT into nixosConfigurations.controller.
-# Set `disko.devices.disk.controller.device` to the real by-id path on hardware.
-#
-# Secrets: do NOT put a passphrase here. For nixos-install / disko-install,
-# pass a passwordFile path that exists only on the installer environment
-# (see REINSTALL.md). Example override at apply time:
-#   disko.devices.disk.controller.content.partitions.luks.content.passwordFile = "/tmp/controller-luks-pass";
+# Set device to the real by-id path on hardware.
+# passwordFile: installer-only path; never commit secrets.
 
 { lib, ... }:
 {
   disko.devices = {
     disk.controller = {
       type = "disk";
-      # REPLACE on the machine, e.g. "/dev/disk/by-id/mmc-DF4032_0x... "
+      # REPLACE: ls -l /dev/disk/by-id/
       device = "/dev/mmcblk0";
       content = {
         type = "gpt";
@@ -40,13 +35,11 @@
               name = "cryptroot";
               settings = {
                 allowDiscards = true;
-                # systemd-initrd unlock; TPM enroll is post-install (see REINSTALL.md)
-                crypttabExtraOpts = [
-                  "tpm2-device=auto"
-                  "token-timeout=10"
-                ];
+                # Token lines are inert until you enroll post-install.
+                # Prefer FIDO2 for travel; TPM only after pcrread proves useful.
+                # crypttabExtraOpts = [ "fido2-device=auto" ];
               };
-              # passwordFile = "/run/secrets/controller-luks"; # set only on installer
+              # passwordFile = "/tmp/controller-luks-pass";
               extraFormatArgs = [
                 "--type"
                 "luks2"
@@ -54,15 +47,37 @@
                 "argon2id"
               ];
               content = {
-                type = "filesystem";
-                format = "btrfs";
-                mountpoint = "/";
-                mountOptions = [
-                  "compress=zstd:3"
-                  "noatime"
-                  "ssd" # eMMC still benefits from discard-friendly opts
-                  "discard=async"
-                ];
+                type = "btrfs";
+                extraArgs = [ "-f" ];
+                subvolumes = {
+                  "/root" = {
+                    mountpoint = "/";
+                    mountOptions = [
+                      "compress=zstd:3"
+                      "noatime"
+                      "ssd"
+                      "discard=async"
+                    ];
+                  };
+                  "/nix" = {
+                    mountpoint = "/nix";
+                    mountOptions = [
+                      "compress=zstd:3"
+                      "noatime"
+                      "ssd"
+                      "discard=async"
+                    ];
+                  };
+                  "/home" = {
+                    mountpoint = "/home";
+                    mountOptions = [
+                      "compress=zstd:3"
+                      "noatime"
+                      "ssd"
+                      "discard=async"
+                    ];
+                  };
+                };
               };
             };
           };
