@@ -1,4 +1,4 @@
-# D5.3 — JamePeng 0.3.49 + Pillow runtime dep; D5.2 src/submodules + CUDA + patches/.
+# D5.4 — disable HF-download tests; D5.3 Pillow via PBI; D5.2 JamePeng src.
 # Author: Nikola
 #
 # Stock nixpkgs 25.05 ships abetlen llama-cpp-python 0.3.9. House runs the
@@ -64,6 +64,18 @@ let
       # (pythonRuntimeDepsCheckHook failed Court with "pillow not installed").
       propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [
         pkgs.python3Packages.pillow
+      ];
+      # D5.4: Court CUDA build — 82 passed, 3 ERROR (LocalEntryNotFoundError).
+      # Those three pull a GGUF via huggingface_hub at test time; nix sandbox
+      # has no network. Stock recipe already disables test_real_model /
+      # test_real_llama for the same class. Append the three that failed;
+      # keep doCheck on so the other ~82 still run (Spock preference).
+      # Fact (fork tree @ 34c1bfb): all three live in tests/test_llama.py and
+      # take the llama_cpp_model_path fixture.
+      disabledTests = (old.disabledTests or [ ]) ++ [
+        "test_grammar_sampling_safety"
+        "test_logit_bias"
+        "test_custom_logits_processor"
       ];
       # CMake 3.24+ — semicolon-separated arch list (incl. 89, 120 on this pin).
       CUDAARCHS = arches;
