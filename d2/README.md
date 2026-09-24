@@ -1,6 +1,6 @@
 # D2.1 — Controller / window disk encryption (draft)
 
-**Court Contract 001 · Deliverable D2.1** (addresses Spock’s D2 review)  
+**Court Contract 001 · Deliverable D2.1 / D2.2** (addresses Spock’s D2 review)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
 ## Spock review → changes
@@ -25,21 +25,31 @@
 | `luks.nix` | Additive initrd/TPM/gc only |
 | `REINSTALL.md` | Keyboard steps for `.#window` |
 | `flake-fragment.nix` | Inputs + module wiring sketch |
-| `nixos-test.nix` | Passphrase LUKS boot test (no Cr50) |
+| `nixos-test.nix` | Passphrase LUKS boot test (no Cr50) — D2.1 |
+| `disko-layout-test.nix` | TEST-ONLY mirror of `disko.nix` for makeDiskoTest (device + passwordFile) |
+| `nixos-test-disko.nix` | D2.2 disko layout test (GPT+ESP+LUKS2+btrfs) |
 | `eval-luks.nix` | Cheap module eval check (no QEMU) |
 | `RESEARCH.md` | Earlier Cr50 brief (still valid background) |
 
 ## Verify
 
-On Nikola’s Grok Bot VM (2026-09-23):
+On Nikola’s Grok Bot VM (2026-09-24):
 
 - `nix build .#checks.x86_64-linux.d2-luks-eval` — **passed** (`luks.nix` evaluates into a NixOS toplevel).
-- `nix build .#checks.x86_64-linux.d2-luks-passphrase` — **not runnable here**. Nested KVM faults (`kernel BUG` in `kvm_arch_vcpu_create`). The test mirrors nixpkgs `nixos/tests/systemd-initrd-luks-password.nix` (25.05). Please run it on the rig or any host with working nested virt:
+- `nix build .#checks.x86_64-linux.d2-luks-passphrase` — **not runnable here**. Nested KVM faults (`kernel BUG` in `kvm_arch_vcpu_create`). The test mirrors nixpkgs `nixos/tests/systemd-initrd-luks-password.nix` (25.05). **Passphrase-only** unlock (upstream-style LUKS on a blank disk) — does **not** assert Nikola’s GPT/ESP/btrfs layout. Please run it on the rig or any host with working nested virt:
 
 ```bash
 nix build -L .#checks.x86_64-linux.d2-luks-passphrase
 ```
 
+- `nix build .#checks.x86_64-linux.d2-disko-layout` — **D2.2**. Uses `disko.lib.testLib.makeDiskoTest` on a test-only mirror of Nikola’s layout (`disko-layout-test.nix`): GPT + 512 MiB ESP + LUKS2 (argon2id) + btrfs subvols `/`, `/nix`, `/home`. Formats, unlocks with a **TEST-ONLY** throwaway passphrase (`secretsecret` via makeDiskoTest’s `/tmp/secret.key`), boots, asserts mounts + subvolumes. Production `disko.nix` stays fail-closed on the by-id placeholder; the test remaps the device to the VM disk. No TPM enroll (PCRs zero — passphrase is the lock).
+  - **Eval / typecheck (this VM, 2026-09-24):** passed — `nix eval` yields `disko-nikola-d2-disko-layout`; driver typecheck + lint clean; drv instantiates.
+  - **QEMU run (this VM):** **blocked / killed.** Nested virt hung after `machine: starting vm` (~15 min; qemu-system 0 % CPU, test-driver spinning). Same class of failure as D2.1/D3 nested KVM on this box — do **not** wait the 3600 s timeout. Run on the Court rig (or any host with working nested virt):
+
+```bash
+nix build -L .#checks.x86_64-linux.d2-disko-layout
+```
+
 ## Secrets
 
-No passphrases in git. nixosTest uses a throwaway passphrase inside the test VM only.
+No passphrases in git. nixosTests use throwaway passphrases inside the test VM only (clearly labeled TEST-ONLY).

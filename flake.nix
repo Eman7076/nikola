@@ -7,6 +7,11 @@
       url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    disko = {
+      # Pin via flake.lock; git+https avoids GitHub API rate limits on some VMs.
+      url = "git+https://github.com/nix-community/disko.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -14,6 +19,7 @@
       self,
       nixpkgs,
       home-manager,
+      disko,
       ...
     }:
     let
@@ -45,6 +51,7 @@
       checks.${system} = {
         d2-luks-eval = import ./d2/eval-luks.nix { inherit pkgs; };
         d2-luks-passphrase = import ./d2/nixos-test.nix { inherit pkgs; };
+        d2-disko-layout = import ./d2/nixos-test-disko.nix { inherit pkgs disko; };
         d3-wireguard-eval = import ./d3/eval-wireguard.nix { inherit pkgs; };
         d3-wireguard-mesh = import ./d3/nixos-test.nix { inherit pkgs; };
       };

@@ -27,6 +27,8 @@ These are **proposals for Spock/Eli review**, not commits to build. Rank **1 = b
 
 **Honest cost.** eMMC: a few KiB of unit + script. RAM/CPU: negligible if interval is minutes, not seconds. Ops burden: Court chooses and funds the alert sink; false positives need tuning after first travel week. Secret/key handling: ntfy token or SMTP creds must stay **path-only** (age/sops later, or a root-only file Court places) — never in the flake. Failure modes: controller itself offline → no alert (inherent); alert sink outage → silent; aggressive polling on bad Wi‑Fi drains attention more than battery. Needs: mesh up (D3.1 rollout); Court to provision the notify endpoint; Eli only if the sink is personal email.
 
+> **Spock note (D2.2 pass):** controller already has a sentinel/dead-man. Prefer framing #2 as a **mesh-health signal that the existing dead-man consumes**, not a second independent watchdog daemon.
+
 ---
 
 ## 3. Declarative “controller is home vs away” profile
