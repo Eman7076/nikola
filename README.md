@@ -47,4 +47,5 @@ Hard lines honored: no Court machine access, no secrets, text/repo for human app
 
 - **D1** (accepted): this flake (sandbox home)
 - **D2** (draft): [`d2/`](./d2/) controller LUKS + disko — for Spock/Eli review
-- **D3 / D3.1** (draft): [`d3/`](./d3/) WireGuard mesh (rig=Arch, controller=NixOS, conduit=Pop) + wg-quick pkgs + IPv6-first endpoint notes — for Spock/Eli review
+- **D3 / D3.1** (accepted): [`d3/`](./d3/) WireGuard mesh (rig=Arch, controller=NixOS, conduit=Pop) + wg-quick pkgs + IPv6-first endpoint notes — Court owns rollout
+- **D4** (draft): [`d4/`](./d4/) ten ranked controller ideas (prose + honest costs) — for Spock/Eli review
