@@ -1,4 +1,4 @@
-# D2.2 — nixosTest via disko makeDiskoTest: Nikola layout (not upstream-only LUKS)
+# D2.2.1 — nixosTest via disko makeDiskoTest: Nikola layout (not upstream-only LUKS)
 # Author: Nikola
 #
 # Proves GPT + ESP + LUKS2 + btrfs subvolumes /, /nix, /home:
@@ -8,8 +8,12 @@
 #   nix build -L .#checks.x86_64-linux.d2-disko-layout
 #
 # Pattern: disko.lib.testLib.makeDiskoTest (see nix-community/disko tests/).
-# Note: nixpkgs 25.05 qemu-common wants { lib, pkgs }; disko’s test lib still
-# calls it with { lib, stdenv } — thin adapter below.
+#
+# Pin: disko **v1.12.0** (nixos-25.05 era; same as nixpkgs.disko). Newer disko
+# master registers reboot VMs via driver.machines_qemu — an attribute the 25.05
+# test Driver does not have → AttributeError after install/sync. v1.12.0 still
+# uses driver.machines.append. No qemu-common adapter needed on this pin
+# (that skew only appeared on later disko).
 
 {
   pkgs,
@@ -21,12 +25,6 @@ let
     inherit (pkgs) lib;
     makeTest = import (pkgs.path + "/nixos/tests/make-test-python.nix");
     eval-config = import (pkgs.path + "/nixos/lib/eval-config.nix");
-    # Adapter: disko passes { lib, stdenv }; 25.05 qemu-common needs { lib, pkgs }.
-    qemu-common =
-      { lib, stdenv }:
-      import (pkgs.path + "/nixos/lib/qemu-common.nix") {
-        inherit lib pkgs;
-      };
   };
 in
 diskoLib.testLib.makeDiskoTest {

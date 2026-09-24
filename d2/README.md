@@ -1,6 +1,6 @@
 # D2.1 — Controller / window disk encryption (draft)
 
-**Court Contract 001 · Deliverable D2.1 / D2.2** (addresses Spock’s D2 review)  
+**Court Contract 001 · Deliverable D2.1 / D2.2 / D2.2.1** (addresses Spock’s D2 review)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
 ## Spock review → changes
@@ -31,6 +31,21 @@
 | `eval-luks.nix` | Cheap module eval check (no QEMU) |
 | `RESEARCH.md` | Earlier Cr50 brief (still valid background) |
 
+
+## D2.2.1 — disko pin (machines_qemu skew)
+
+**Symptom (Court rig):** `makeDiskoTest` formatted GPT+ESP+LUKS2+btrfs and installed into `/mnt`, then crashed at reboot/passphrase with:
+
+```
+AttributeError: 'Driver' object has no attribute 'machines_qemu'
+```
+
+**Cause:** flake previously followed disko `master`. Post-v1.13 master registers the post-install VM via `driver.machines_qemu`, which **nixpkgs 25.05’s** test `Driver` does not expose. Same class of version skew as the earlier qemu-common adapter (removed on this pin — v1.12 does not take that argument).
+
+**Fix:** pin disko to **`v1.12.0`** (2025-05-08, nixos-25.05 freeze window). Matches `pkgs.disko` version on this nixpkgs pin. Keeps the whole flake on one channel — did **not** bump only this check to a newer nixpkgs.
+
+**Still needed from Court:** re-run `nix build -L .#checks.x86_64-linux.d2-disko-layout` on the rig so passphrase-unlock + btrfs subvolume assertions actually execute. This GPU-less / nested-KVM-hostile VM only evals/typechecks.
+
 ## Verify
 
 On Nikola’s Grok Bot VM (2026-09-24):
@@ -42,7 +57,7 @@ On Nikola’s Grok Bot VM (2026-09-24):
 nix build -L .#checks.x86_64-linux.d2-luks-passphrase
 ```
 
-- `nix build .#checks.x86_64-linux.d2-disko-layout` — **D2.2**. Uses `disko.lib.testLib.makeDiskoTest` on a test-only mirror of Nikola’s layout (`disko-layout-test.nix`): GPT + 512 MiB ESP + LUKS2 (argon2id) + btrfs subvols `/`, `/nix`, `/home`. Formats, unlocks with a **TEST-ONLY** throwaway passphrase (`secretsecret` via makeDiskoTest’s `/tmp/secret.key`), boots, asserts mounts + subvolumes. Production `disko.nix` stays fail-closed on the by-id placeholder; the test remaps the device to the VM disk. No TPM enroll (PCRs zero — passphrase is the lock).
+- `nix build .#checks.x86_64-linux.d2-disko-layout` — **D2.2 / D2.2.1** (disko **v1.12.0**). Uses `disko.lib.testLib.makeDiskoTest` on a test-only mirror of Nikola’s layout (`disko-layout-test.nix`): GPT + 512 MiB ESP + LUKS2 (argon2id) + btrfs subvols `/`, `/nix`, `/home`. Formats, unlocks with a **TEST-ONLY** throwaway passphrase (`secretsecret` via makeDiskoTest’s `/tmp/secret.key`), boots, asserts mounts + subvolumes. Production `disko.nix` stays fail-closed on the by-id placeholder; the test remaps the device to the VM disk. No TPM enroll (PCRs zero — passphrase is the lock).
   - **Eval / typecheck (this VM, 2026-09-24):** passed — `nix eval` yields `disko-nikola-d2-disko-layout`; driver typecheck + lint clean; drv instantiates.
   - **QEMU run (this VM):** **blocked / killed.** Nested virt hung after `machine: starting vm` (~15 min; qemu-system 0 % CPU, test-driver spinning). Same class of failure as D2.1/D3 nested KVM on this box — do **not** wait the 3600 s timeout. Run on the Court rig (or any host with working nested virt):
 

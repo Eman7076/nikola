@@ -8,8 +8,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     disko = {
-      # Pin via flake.lock; git+https avoids GitHub API rate limits on some VMs.
-      url = "git+https://github.com/nix-community/disko.git";
+      # D2.2.1: pin to v1.12.0 (nixos-25.05-era). Latest master uses
+      # driver.machines_qemu which 25.05's test Driver lacks → AttributeError
+      # after install/reboot. nixpkgs 25.05 also packages disko 1.12.0.
+      # git+https + explicit rev avoids GitHub API rate limits on this VM.
+      url = "git+https://github.com/nix-community/disko.git?ref=refs/tags/v1.12.0&rev=ff442f5d1425feb86344c028298548024f21256d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

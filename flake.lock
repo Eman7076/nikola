@@ -7,15 +7,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1789770686,
-        "narHash": "sha256-uZkBR7yHdIKUFB5SZdfgh1qkGfI3XmYmI/lTiquxbck=",
-        "ref": "refs/heads/master",
-        "rev": "725ea35e410ad83be4931d1bff7e090eacaf3563",
-        "revCount": 1394,
+        "lastModified": 1746728054,
+        "narHash": "sha256-eDoSOhxGEm2PykZFa/x9QG5eTH0MJdiJ9aR00VAofXE=",
+        "ref": "refs/tags/v1.12.0",
+        "rev": "ff442f5d1425feb86344c028298548024f21256d",
+        "revCount": 1236,
         "type": "git",
         "url": "https://github.com/nix-community/disko.git"
       },
       "original": {
+        "ref": "refs/tags/v1.12.0",
+        "rev": "ff442f5d1425feb86344c028298548024f21256d",
         "type": "git",
         "url": "https://github.com/nix-community/disko.git"
       }
