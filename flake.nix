@@ -29,6 +29,19 @@
         ];
       };
 
+      packages.${system} = {
+        # wg-quick confs for non-NixOS peers (same d3/peers.nix inventory).
+        # result → wg-court.conf; private key via PostUp path (never inline).
+        wg-conf-rig = import ./d3/wg-conf.nix {
+          inherit pkgs;
+          thisPeer = "rig";
+        };
+        wg-conf-conduit = import ./d3/wg-conf.nix {
+          inherit pkgs;
+          thisPeer = "conduit";
+        };
+      };
+
       checks.${system} = {
         d2-luks-eval = import ./d2/eval-luks.nix { inherit pkgs; };
         d2-luks-passphrase = import ./d2/nixos-test.nix { inherit pkgs; };

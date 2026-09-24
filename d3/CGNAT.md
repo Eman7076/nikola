@@ -1,61 +1,94 @@
-# D3 — CGNAT / no inbound endpoint
+# D3 — Endpoints: IPv6-first, CGNAT IPv4, relay fallback
 
-**Court Contract 001 · Deliverable D3**  
+**Court Contract 001 · Deliverable D3 / D3.1**  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
-Written answer for: a home router behind **carrier-grade NAT (CGNAT)**, so no stable public endpoint is reachable from the outside.
+Networking guidance for Spock/Eli. **Not** a certification of any ISP path. Facts vs guesses are labeled.
 
-This is networking guidance for Spock/Eli to apply. It is **not** a certification that any specific Court ISP path is CGNAT — if Court’s ISP situation is unknown, treat ISP-specific claims below as **labeled guesses**.
+## Facts (Spock-measured / Court-known)
 
-## What breaks
+| Fact | Source |
+|------|--------|
+| **rig has a global IPv6** from AT&T **mobile-range** addressing | Spock measurement — treat as fact, not guess |
+| Only **controller** is NixOS; **rig** = Arch, **conduit** = Pop!_OS | Court inventory |
+| IPv4 home paths may be CGNAT or NAT without inbound | Common; confirm per site before relying on IPv4 Endpoint |
 
-WireGuard needs at least one side of a peer pair to know a reachable `Endpoint` (IP:port) so it can send the first handshake packet.
+## Unknown (must test)
 
-When a peer sits behind CGNAT (or a home NAT with no port-forward and no IPv6):
+| Unknown | Why it matters |
+|---------|----------------|
+| Whether **unsolicited inbound IPv6 UDP/51820** reaches the rig | Could be home-gateway IPv6 firewall (Eli can pinhole) **or** carrier block (cannot open) |
+| Whether phone-cellular → rig IPv6 WG handshake succeeds | Court will test from phone cellular once WG listens on rig |
 
-- **Inbound `Endpoint` to that peer does not work.** Packets aimed at the CGNAT public address never reach the peer’s WireGuard listen port (or hit the wrong subscriber).
-- Setting `endpoint = "cgnat-public:51820"` on other peers for that node is a dead config — handshakes from the outside fail.
+Until inbound IPv6 is confirmed, do not assume `[rig-ipv6]:51820` works as a production Endpoint.
+
+## Primary plan — IPv6-first Endpoint (rig)
+
+1. Prefer WireGuard `Endpoint = [rig-global-ipv6]:51820` on peers that dial the rig (controller, conduit), once the measured address is filled into `d3/peers.nix`.
+2. Bring up `wg-court` on the rig (Arch, `wg-quick` from `nix build .#wg-conf-rig`).
+3. From phone cellular (and from controller/conduit), attempt handshake / `wg show` latest handshake.
+4. If the home gateway filters inbound IPv6: Eli pinholes UDP 51820 to the rig.
+5. If the **carrier** blocks unsolicited inbound IPv6: pinhole will not help — go to fallback.
+
+Mesh addresses stay IPv4 (`10.77.0.0/24`) in this draft; IPv6 here is for **underlay Endpoint reachability**, not replacing mesh IPs (optional ULA mesh can be added later).
+
+## Fallback — small VPS relay
+
+If inbound IPv6 to the rig fails (carrier block or unworkable CPE):
+
+- Run WireGuard (or only a meeting-point peer) on a **small VPS** with a stable public address.
+- All home peers dial the VPS with `persistentKeepalive = 25` (inventory default).
+- Cost: one hop + a bill; reliability: high.
+
+## Prior CGNAT / IPv4 notes (still valid)
+
+WireGuard needs at least one side of a peer pair to know a reachable `Endpoint` so it can send the first handshake.
+
+When a peer sits behind CGNAT (or a home NAT with no port-forward and no working inbound IPv6):
+
+- **Inbound `Endpoint` to that peer does not work** on IPv4 CGNAT.
+- Setting `endpoint = "cgnat-public:51820"` on other peers for that node is a dead config.
 - Full-mesh “everyone lists everyone else’s endpoint” collapses for pairs where both sides lack a reachable address (**double NAT / both-CGNAT**).
 
-## What still works
+### What still works
 
-If **at least one peer has a stable public endpoint** (VPS, colo, fiber with a real public IP, or a forwarded port):
+If **at least one peer has a stable reachable endpoint** (rig IPv6 if inbound works, VPS, colo, forwarded port):
 
-### Hub / spoke
+#### Hub / spoke
 
 - Put the reachable peer in the middle (hub).
-- CGNAT peers set `endpoint = hub:port` and `persistentKeepalive` (module default **25s**) so they dial out and refresh the NAT mapping.
-- Spoke↔spoke traffic can hairpin through the hub if AllowedIPs / routing are set that way (this module’s default is **/32 full mesh**, not automatic spoke↔spoke via hub — extend AllowedIPs or add routes if you want hub relay of mesh traffic).
+- Other peers set `endpoint = hub:port` and keepalive so they dial out and refresh NAT mappings.
+- Spoke↔spoke via hub needs AllowedIPs / routing beyond this module’s default **/32 full mesh**.
 
-### Full mesh with keepalive (this module’s default shape)
+#### Full mesh with keepalive (module + wg-quick default shape)
 
-- Every peer still lists the others’ public keys + mesh `/32` AllowedIPs.
-- Only peers with a real inbound path get a non-null `endpoint`.
-- CGNAT peers leave `endpoint = null` on *their* entry in others’ configs? **No** — wait: the `endpoint` field lives on the *remote* peer entry. So on the CGNAT host’s config, set `endpoint` toward the public peers; on the public hosts’ configs, leave the CGNAT peer’s `endpoint = null` and rely on the CGNAT side to initiate + keepalive.
-- Once the CGNAT side has initiated, return traffic flows through the mapped hole until the mapping expires; keepalive refreshes it.
-- Peer pairs that both lack endpoints still cannot start a session to each other without a third path (see guesses below).
+- Every peer lists the others’ public keys + mesh `/32` AllowedIPs.
+- Only peers with a real inbound path get a non-null `endpoint` in `d3/peers.nix`.
+- On public hosts’ configs, leave the no-inbound peer’s `endpoint = null`; that peer initiates + keepalive.
+- Peer pairs that both lack endpoints still cannot start a session without a third path.
 
-**One peer down:** with full mesh and two remaining peers that can reach each other (both have endpoints, or one dials the other), connectivity between those two continues. That is what `d3/nixos-test.nix` checks. If the only reachable hub dies and two CGNAT spokes have no path to each other, spoke↔spoke dies — topology choice matters.
+**One peer down:** with full mesh and two remaining peers that can reach each other, connectivity continues (`d3/nixos-test.nix`). If the only reachable hub dies and two no-inbound spokes have no path to each other, spoke↔spoke dies.
 
-## Labeled honest guesses / options
+## Labeled options
 
 | Approach | Notes | Label |
 |----------|--------|--------|
-| **Keepalive to a public hub** | Simplest with this module: one peer (e.g. conduit on a VPS, or rig if it has public IP) is always dialable; home peers dial out. | Common pattern; works with stock WireGuard |
-| **IPv6 if the ISP gives a global address** | Often bypasses IPv4 CGNAT; use a `/128` mesh or parallel `fd77:…` ULA. | **Guess** — depends on Court ISP / CPE |
-| **Port-forward / “public IP” add-on** | Some ISPs sell a real IP or allow forwarding on the CPE. | **Guess** — ISP-specific; do not assume |
-| **VPS as meeting point** | Cheap VPS runs WireGuard (or only a relay); all home peers dial the VPS. | Reliable; adds a hop and a bill |
-| **Tailscale / Headscale / DERP-style relay** | Userspace coordination + relay when P2P/NAT fails. Heavier dependency; great UX. | **Guess** that Court may or may not want this vs raw WG |
-| **UDP hole punching / ICE-like helpers** | Not in stock `wg(8)`; needs extra software. | Out of scope for this D3 module |
-| **`DynamicEndpointRefresh` / roaming** | Helps when the *reachable* side’s IP changes; does not create inbound through CGNAT by itself. | Useful adjunct, not a CGNAT fix |
+| **IPv6 Endpoint to rig** | Prefer `[rig-ipv6]:51820` when inbound works | **Primary plan**; inbound = **unknown** until tested |
+| **Keepalive to a public hub** | One dialable peer; others dial out | Common pattern; works with stock WireGuard |
+| **Port-forward / “public IP” add-on (IPv4)** | Some ISPs sell a real IP or allow CPE forwarding | **Guess** — ISP-specific |
+| **VPS as meeting point** | Cheap VPS; all dial the VPS | **Fallback** if inbound IPv6 fails |
+| **Tailscale / Headscale / DERP-style relay** | Userspace coordination + relay | **Guess** that Court may or may not want this vs raw WG |
+| **UDP hole punching / ICE-like helpers** | Not in stock `wg(8)` | Out of scope for this D3 module |
+| **`DynamicEndpointRefresh` / roaming** | Helps when the reachable side’s IP changes; does not create inbound through CGNAT alone | Useful adjunct |
 
 ## Recommendation for Court (draft)
 
-1. Pick **one** always-reachable endpoint (likely a small VPS or whichever Court host already has a stable public address).
-2. Configure home/CGNAT peers with that endpoint + `persistentKeepalive = 25` (module default).
-3. Leave `endpoint = null` for the CGNAT peer on everyone else’s peer list.
-4. If two home peers must talk while the hub is down, either give one a real inbound path or accept a relay product (Tailscale/DERP/etc.) — **guess:** raw WireGuard alone will not save double-CGNAT.
+1. **Try IPv6-first:** fill Spock’s measured rig global IPv6 into `peers.nix`, listen on rig, test from phone cellular + other peers.
+2. If inbound IPv6 works (with or without Eli’s gateway pinhole): use that as the primary Endpoint; keep keepalive on dialing peers.
+3. If inbound IPv6 fails due to carrier: stand up a **small VPS relay** and dial that instead.
+4. Leave `endpoint = null` for peers with no inbound path on everyone else’s peer list.
+5. Do not assume IPv4 CGNAT can be opened without ISP cooperation.
 
 ## Secrets reminder
 
-Private keys stay as **file paths** (`court.wireguard.privateKeyFile`). Public keys and endpoints are fine in Nix. Do not commit production private keys.
+Private keys stay as **file paths** (`court.wireguard.privateKeyFile` on NixOS; `PostUp = wg set %i private-key <path>` in wg-quick confs). Public keys and endpoints are fine in Nix. Do not commit production private keys.

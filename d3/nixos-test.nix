@@ -7,9 +7,18 @@
 #
 #   nix build -L .#checks.x86_64-linux.d3-wireguard-mesh
 #
+# Underlay note (D3.1 fix):
+#   NixosTest assigns virtualisation.test.nodeNumber by alphabetical attrNames:
+#     conduit=1, controller=2, rig=3 → VLAN1 addresses 192.168.1.<n>.
+#   Do NOT set networking.interfaces.eth1 addresses — that duplicates/conflicts
+#   with the driver's auto underlay. Use hostname Endpoints ("controller:51820")
+#   so /etc/hosts from the test driver resolves to the real primary IPs.
+#
 # Proves:
-#   1. every peer pings every other peer over mesh IPs
-#   2. stopping one peer does not break connectivity between the remaining two
+#   1. underlay ping matrix (hostname) before mesh
+#   2. wg show / ip addr / ip route dumped before mesh pings
+#   3. every peer pings every other peer over mesh IPs
+#   4. stopping one peer does not break connectivity between the remaining two
 
 { pkgs, ... }:
 let
@@ -32,19 +41,32 @@ let
     };
   };
 
-  meshPort = 51820;
-
-  # Underlay (VLAN 1) addresses — stand-ins for public/reachable endpoints in the lab.
-  underlay = {
-    rig = "192.168.1.1";
-    controller = "192.168.1.2";
-    conduit = "192.168.1.3";
-  };
+  inventory = import ./peers.nix;
+  meshPort = inventory.listenPort;
 
   mesh = {
-    rig = "10.77.0.1";
-    controller = "10.77.0.2";
-    conduit = "10.77.0.3";
+    rig = inventory.peers.rig.address;
+    controller = inventory.peers.controller.address;
+    conduit = inventory.peers.conduit.address;
+  };
+
+  # Hostname endpoints — test driver /etc/hosts → real VLAN1 primary IPs.
+  testPeers = {
+    rig = {
+      publicKey = testKeys.rig.public;
+      address = mesh.rig;
+      endpoint = "rig:${toString meshPort}";
+    };
+    controller = {
+      publicKey = testKeys.controller.public;
+      address = mesh.controller;
+      endpoint = "controller:${toString meshPort}";
+    };
+    conduit = {
+      publicKey = testKeys.conduit.public;
+      address = mesh.conduit;
+      endpoint = "conduit:${toString meshPort}";
+    };
   };
 
   peerCommon =
@@ -57,14 +79,9 @@ let
     {
       imports = [ ./wireguard-mesh.nix ];
 
+      # Keep VLAN 1; do NOT assign eth1 addresses (driver owns underlay IPs).
       virtualisation.vlans = [ 1 ];
       networking.useDHCP = false;
-      networking.interfaces.eth1.ipv4.addresses = [
-        {
-          address = underlay.${thisPeer};
-          prefixLength = 24;
-        }
-      ];
 
       # TEST-ONLY private key file path — module requires privateKeyFile (no inline keys).
       environment.etc."court-wg/private.key" = {
@@ -77,24 +94,9 @@ let
         thisPeer = thisPeer;
         privateKeyFile = "/etc/court-wg/private.key";
         listenPort = meshPort;
-        persistentKeepalive = 25;
-        peers = {
-          rig = {
-            publicKey = testKeys.rig.public;
-            address = mesh.rig;
-            endpoint = "${underlay.rig}:${toString meshPort}";
-          };
-          controller = {
-            publicKey = testKeys.controller.public;
-            address = mesh.controller;
-            endpoint = "${underlay.controller}:${toString meshPort}";
-          };
-          conduit = {
-            publicKey = testKeys.conduit.public;
-            address = mesh.conduit;
-            endpoint = "${underlay.conduit}:${toString meshPort}";
-          };
-        };
+        persistentKeepalive = inventory.persistentKeepalive;
+        meshCidr = inventory.meshCidr;
+        peers = testPeers;
       };
 
       environment.systemPackages = with pkgs; [
@@ -118,6 +120,19 @@ pkgs.nixosTest {
     for m in [rig, controller, conduit]:
         m.wait_for_unit("multi-user.target")
         m.wait_for_unit("wireguard-wg-court.service")
+
+    # --- Diagnostics before mesh pings (failure mode must be obvious) ---
+    for m in [rig, controller, conduit]:
+        print(f"=== {m.name}: hostname / ip / route / wg show ===")
+        print(m.succeed("hostname; echo ---; ip -4 addr; echo ---; ip route; echo ---; wg show wg-court"))
+
+    # Underlay ping matrix via hostnames (resolves to driver-assigned VLAN1 IPs).
+    rig.wait_until_succeeds("ping -c 1 -W 2 controller", timeout=30)
+    rig.wait_until_succeeds("ping -c 1 -W 2 conduit", timeout=30)
+    controller.wait_until_succeeds("ping -c 1 -W 2 rig", timeout=30)
+    controller.wait_until_succeeds("ping -c 1 -W 2 conduit", timeout=30)
+    conduit.wait_until_succeeds("ping -c 1 -W 2 rig", timeout=30)
+    conduit.wait_until_succeeds("ping -c 1 -W 2 controller", timeout=30)
 
     # Handshake / reachability: every peer → every other peer over mesh IPs.
     rig.wait_until_succeeds("ping -c 1 -W 2 ${mesh.controller}", timeout=60)

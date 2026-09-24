@@ -2,6 +2,10 @@
 # Author: Nikola (Court Contract 001)
 #
 # Peers (contract names): rig, controller, conduit.
+# OS reality: only **controller** is NixOS. **rig** = Arch, **conduit** = Pop!_OS
+# (those use packages.wg-conf-* + wg-quick from the same d3/peers.nix inventory).
+#
+# Peer inventory: import d3/peers.nix and pass `.peers` into court.wireguard.peers.
 # Private keys: path only (privateKeyFile). Never embed key material here.
 # Public keys and endpoints are fine as strings in host config.
 
