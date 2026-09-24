@@ -29,7 +29,9 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 | **D4** | Accepted | [`d4/`](./d4/) ten ranked **controller** ideas |
 | **D5.1–D5.4** | Accepted (rig) | [`d5/`](./d5/) JamePeng `llama-cpp-python` **0.3.49** CUDA + patches hook + pillow + sandbox-safe tests |
 | **D5.5** | On `main`; Court GPU re-smoke | [`d5/`](./d5/) Arch NVIDIA **driver-only** shim (`shellHook` + `court-llama-env`) |
-| **D6** | Pitch (this commit) | [`d6/PITCH.md`](./d6/PITCH.md) ten ranked **fleet** ideas — reproducible / measurable bias |
+| **D6** | Pitch on `main` | [`d6/PITCH.md`](./d6/PITCH.md) ten ranked **fleet** ideas — reproducible / measurable bias |
+| **D6.1** | Landed (Court apply) | [`d6/01-window-luks-apply.md`](./d6/01-window-luks-apply.md) window LUKS migration runbook — **Nikola does not operate window** |
+| **D6.2** | Landed (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) fan-in oneshot/timer — feeds existing dead-man; no `Persistent=true` |
 
 ## Hard lines
 
