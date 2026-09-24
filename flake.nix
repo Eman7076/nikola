@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch / D6.1–D6.2)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch / D6.1–D6.2 / D6.4)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -74,6 +74,9 @@
         # D6.2: one-bell fan-in (eval always; full nixosTest may need Court rig virt).
         d6-one-bell-eval = import ./d6/one-bell/eval-one-bell.nix { inherit pkgs; };
         d6-one-bell = import ./d6/one-bell/nixos-test.nix { inherit pkgs; };
+        # D6.4: Spock freshness canary (eval + pure script; no Persistent=true).
+        d6-freshness-eval = import ./d6/freshness/eval-freshness.nix { inherit pkgs; };
+        d6-freshness-script = import ./d6/freshness/check-canary-script.nix { inherit pkgs; };
       };
 
       devShells.${system} = {

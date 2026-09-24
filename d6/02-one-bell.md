@@ -114,6 +114,6 @@ nix build -L .#checks.x86_64-linux.d6-one-bell
 
 ## Non-goals
 
-- Idea 4 (Spock recall freshness canary) — **next session**; can become one of the source files feeding this stream later.
+- Idea 4 (Spock recall freshness canary) — **landed as D6.4** ([`04-freshness-canary.md`](./04-freshness-canary.md)); Court adds its `statusOutPath` to `sourceFiles`.
 - Alert sink configuration, secrets, or phone-home.
 - Replacing Spock’s sentinel.

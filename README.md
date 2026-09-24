@@ -32,6 +32,7 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 | **D6** | Pitch on `main` | [`d6/PITCH.md`](./d6/PITCH.md) ten ranked **fleet** ideas — reproducible / measurable bias |
 | **D6.1** | Landed (Court apply) | [`d6/01-window-luks-apply.md`](./d6/01-window-luks-apply.md) window LUKS migration runbook — **Nikola does not operate window** |
 | **D6.2** | Landed (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) fan-in oneshot/timer — feeds existing dead-man; no `Persistent=true` |
+| **D6.4** | Landed (module + checks) | [`d6/04-freshness-canary.md`](./d6/04-freshness-canary.md) + [`d6/freshness/`](./d6/freshness/) Spock index/recall mtime canary → one-bell status file; no `Persistent=true` |
 
 ## Hard lines
 
