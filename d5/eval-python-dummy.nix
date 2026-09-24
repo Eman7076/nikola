@@ -1,4 +1,4 @@
-# Cheap D5.1 check: instantiate llama-cpp-python CUDA drv with dummy patch.
+# Cheap D5.2 check: instantiate llama-cpp-python CUDA drv with dummy patch.
 # Proves patchesDir hook wires *.patch files. No CUDA build / no inference.
 { pkgs }:
 let

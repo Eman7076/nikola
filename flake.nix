@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D5 llama-cpp-python CUDA)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D5.2 JamePeng llama-cpp-python CUDA)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -54,7 +54,7 @@
           inherit pkgs;
           thisPeer = "conduit";
         };
-        # D5.1: llama-cpp-python CUDA (empty d5/patches/). Heavy to *build* without GPU cache.
+        # D5.2: JamePeng llama-cpp-python 0.3.49 CUDA (empty d5/patches/). Heavy to *build* without GPU cache.
         llama-cpp-python-cuda = import ./d5/llama-cpp-python.nix {
           pkgs = pkgsCuda;
           patchesDir = ./d5/patches;
@@ -67,7 +67,7 @@
         d2-disko-layout = import ./d2/nixos-test-disko.nix { inherit pkgs disko; };
         d3-wireguard-eval = import ./d3/eval-wireguard.nix { inherit pkgs; };
         d3-wireguard-mesh = import ./d3/nixos-test.nix { inherit pkgs; };
-        # D5.1: instantiate shell / python drvs only — no GPU, no full CUDA build.
+        # D5.2: instantiate shell / python drvs only — no GPU, no full CUDA build.
         d5-shell-eval = import ./d5/eval-shell.nix { pkgs = pkgsCuda; };
         d5-python-eval = import ./d5/eval-python.nix { pkgs = pkgsCuda; };
         d5-python-with-dummy-patch = import ./d5/eval-python-dummy.nix { pkgs = pkgsCuda; };
@@ -88,7 +88,7 @@
             wireguard-tools
           ];
         };
-        # D5.1: CUDA llama-cpp-python + llama-server shell for the Arch rig (see d5/README.md).
+        # D5.2: CUDA JamePeng llama-cpp-python 0.3.49 + llama-server for the Arch rig (see d5/README.md).
         llama-cuda = import ./d5/shell.nix { pkgs = pkgsCuda; };
         d5 = self.devShells.${system}.llama-cuda;
       };

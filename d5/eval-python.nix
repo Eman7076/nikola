@@ -1,4 +1,4 @@
-# Cheap D5.1 check: instantiate llama-cpp-python CUDA drv (empty patches/).
+# Cheap D5.2 check: instantiate llama-cpp-python CUDA drv (empty patches/).
 # Does NOT build CUDA / does NOT run inference.
 { pkgs }:
 let
