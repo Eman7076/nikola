@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor home for the Grok Bot / sandbox VM (survives hops via this flake)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS drafts)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -9,29 +9,43 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }:
-  let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
-  in {
-    # Apply on this VM (Debian-class userland, no NixOS):
-    #   nix run home-manager/release-25.05 -- switch --flake /path/to/nikola-home#box
-    # Later hops, once HM is on PATH:
-    #   home-manager switch --flake /path/to/nikola-home#box
-    homeConfigurations.box = home-manager.lib.homeManagerConfiguration {
-      inherit pkgs;
-      modules = [
-        ./home.nix
-        ./modules/devtools.nix
-      ];
-    };
+  outputs =
+    {
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
+    let
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+    in
+    {
+      homeConfigurations.box = home-manager.lib.homeManagerConfiguration {
+        inherit pkgs;
+        modules = [
+          ./home.nix
+          ./modules/devtools.nix
+        ];
+      };
 
-    # Convenience: nix develop .  → shell with the same tools without switching
-    devShells.${system}.default = pkgs.mkShell {
-      packages = with pkgs; [
-        git ripgrep fd jq helix nixfmt-rfc-style
-        nil statix deadnix
-      ];
+      checks.${system} = {
+        d2-luks-eval = import ./d2/eval-luks.nix { inherit pkgs; };
+        d2-luks-passphrase = import ./d2/nixos-test.nix { inherit pkgs; };
+      };
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
+          git
+          ripgrep
+          fd
+          jq
+          helix
+          nixfmt-rfc-style
+          nil
+          statix
+          deadnix
+        ];
+      };
     };
-  };
 }

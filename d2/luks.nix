@@ -1,33 +1,26 @@
-# D2 — NixOS fragment for encrypted controller
-# Author: Nikola (Court Contract 001)
+# D2 — NixOS fragment for encrypted controller (additive only)
+# Author: Nikola (Court Contract 001) · Spock D2.1 review fixes
+#
+# ONLY ADD settings needed for LUKS/TPM tooling. Do NOT redeclare
+# boot.loader.* or zramSwap — those stay in the Court host flake.
+# Leave configurationLimit to their config (Court uses 10; ESP is 512MiB).
+#
+# When adopting disko: REMOVE fileSystems."/" and fileSystems."/boot" from
+# hardware-configuration.nix (disko owns those mounts). Keep other hw bits.
 
 { lib, pkgs, ... }:
 {
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.systemd-boot.configurationLimit = 5;
+  # Needed for systemd-cryptenroll FIDO2 / TPM2 token unlock in initrd.
+  boot.initrd.systemd.enable = lib.mkDefault true;
 
-  # Enable when using FIDO2/TPM crypttab tokens:
-  # boot.initrd.systemd.enable = true;
-
+  # TPM2-related initrd modules (harmless if Cr50 is absent / limited).
   boot.initrd.availableKernelModules = [
-    "aesni_intel"
-    "cryptd"
-    "mmc_core"
-    "mmc_block"
-    "sdhci"
-    "sdhci_pci"
-    "sdhci_acpi"
-    "cqhci"
+    "tpm"
+    "tpm_tis"
+    "tpm_crb"
   ];
 
-  zramSwap = {
-    enable = true;
-    algorithm = "zstd";
-    memoryPercent = 50;
-  };
-
-  nix.settings.auto-optimise-store = true;
+  nix.settings.auto-optimise-store = lib.mkDefault true;
   nix.gc = {
     automatic = true;
     dates = "weekly";

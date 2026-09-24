@@ -1,56 +1,45 @@
-# D2 — Controller disk encryption (draft)
+# D2.1 — Controller / window disk encryption (draft)
 
-**Court Contract 001 · Deliverable D2**  
-**Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli  
-**Status:** draft for human apply — nothing here runs on Court machines from Nikola’s VM
+**Court Contract 001 · Deliverable D2.1** (addresses Spock’s D2 review)  
+**Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
-## Scope
+## Spock review → changes
 
-Declarative LUKS2 for **controller** (~28.5 GiB eMMC, 4 GiB RAM, Cr50 / MrChromebox-class Chromebook).
+1. **Security:** Do **not** bind LUKS to PCR 7 alone on MrChromebox without Secure Boot (PCR 7 matches a thief’s USB OS). Prefer **`systemd-cryptenroll --tpm2-with-pin=yes`** so possession of the chassis is not enough. Alternate: PCRs **0+2+4** with documented re-enroll after every kernel/firmware update. Passphrase remains the mandatory fallback. Threat model: lost/stolen device at rest.
+2. **Fail closed:** `disko.nix` device defaults to `/dev/disk/by-id/REPLACE-WITH-CONTROLLER-EMMC-BY-ID` (non-existent). Court eMMC has been **mmcblk1**, not mmcblk0 — always use by-id.
+3. **Integration:** See `flake-fragment.nix` — add `disko` input, import `disko.nixosModules.disko`, target **`.#window`** until rename.
+4. **Eval conflicts:** `luks.nix` only **adds** initrd.systemd, tpm modules/tools, gc. Does not redeclare `boot.loader.*` or `zramSwap`. You must remove `fileSystems."/"` and `fileSystems."/boot"` from `hardware-configuration.nix` when adopting disko.
+5. **`askPassword = true`** by default; `passwordFile` documented as non-interactive alternative only.
+
+## Layout notes
+
+- **btrfs** subvols for `/`, `/nix`, `/home` — deliberate change from Court **ext4**; backups/images assuming ext4 need a fresh restore plan.
+- **512 MiB ESP** paired with Court’s existing `configurationLimit = 10` (Nikola no longer overrides the limit to 5).
+- zram left entirely to Court’s `zramSwap.memoryPercent = 100`.
+
+## Files
 
 | Path | Role |
 |------|------|
-| `disko.nix` | GPT + ESP + LUKS2 + btrfs subvols (`@`, `@nix`, `@home`) |
-| `luks.nix` | systemd-boot, lean initrd hooks, zram, store GC |
-| `REINSTALL.md` | Keyboard procedure (wipe+reinstall preferred) |
-| `RESEARCH.md` | Full Cr50/TPM brief with fetched URLs |
+| `disko.nix` | Fail-closed disk + ESP + LUKS2 + btrfs |
+| `luks.nix` | Additive initrd/TPM/gc only |
+| `REINSTALL.md` | Keyboard steps for `.#window` |
+| `flake-fragment.nix` | Inputs + module wiring sketch |
+| `nixos-test.nix` | Passphrase LUKS boot test (no Cr50) |
+| `eval-luks.nix` | Cheap module eval check (no QEMU) |
+| `RESEARCH.md` | Earlier Cr50 brief (still valid background) |
 
-## Honest Cr50 / TPM2 assessment (updated)
+## Verify
 
-**Passphrase (+ offline recovery key) is the security control. Optional FIDO2 is fine. TPM is at best convenience.**
+On Nikola’s Grok Bot VM (2026-09-23):
 
-Cr50 is TPM2-*like*, not a full TPM 2.0. Google’s signed firmware omits commands (notably `TPM2_PolicyPassword`). On many MrChromebox Full ROM setups, **PCRs 0–7 stay all-zero**, so PCR-bound “measured boot” unlock does **not** buy trust: an attacker with the chassis can often boot alternate media on the same board and unseal. Sources: [MrChromebox#626](https://github.com/MrChromebox/firmware/issues/626), [#489](https://github.com/MrChromebox/firmware/issues/489), [tpm2-tools#3434](https://github.com/tpm2-software/tpm2-tools/issues/3434).
+- `nix build .#checks.x86_64-linux.d2-luks-eval` — **passed** (`luks.nix` evaluates into a NixOS toplevel).
+- `nix build .#checks.x86_64-linux.d2-luks-passphrase` — **not runnable here**. Nested KVM faults (`kernel BUG` in `kvm_arch_vcpu_create`). The test mirrors nixpkgs `nixos/tests/systemd-initrd-luks-password.nix` (25.05). Please run it on the rig or any host with working nested virt:
 
-| Method | Trust it? | Notes |
-|--------|-----------|-------|
-| Passphrase | **Yes — primary** | |
-| Recovery key (`--recovery-key`) | **Yes** | Offline only; never in git |
-| FIDO2 (`--fido2-device=auto`) | **Yes** | Independent of Cr50 |
-| TPM with empty PCRs | Convenience only | May unlock stolen *drive* still in same machine path; not “stolen laptop” |
-| TPM + PCR 7 / measured boot | **No for trust on this class** | PCRs often useless |
+```bash
+nix build -L .#checks.x86_64-linux.d2-luks-passphrase
+```
 
-Disko cannot enroll TPM at install time (installer PCR ≠ installed system) — [disko#861](https://github.com/nix-community/disko/issues/861).
+## Secrets
 
-Nikola does **not** certify your locks (contract hard line 3).
-
-## Design (small eMMC)
-
-- One LUKS2 container; btrfs subvolumes for `/`, `/nix`, `/home` (no separate `/nix` partition).
-- ESP **512 MiB**; LUKS takes the rest (~27.9 GiB).
-- **zram** only — no swap partition (eMMC wear).
-- `allowDiscards` on LUKS; `compress=zstd` + `noatime` on btrfs.
-- Keep **≥10–14 GiB free** via GC + auto-optimise; remote builds still leave closures locally.
-
-## Secrets policy
-
-No passphrases, keyfiles, or TPM seeds in this repo. Installer uses a local password **file path** you create on the live ISO, then shred.
-
-## How Nikola tested
-
-Static review + research brief (`RESEARCH.md`). Not applied to controller. No Cr50 in the sandbox VM.
-
-## Unsure / guesses
-
-- Board-specific mmc/sdhci modules — merge with whatever the working unencrypted install already loads.
-- Whether *this* unit’s PCRs are non-zero — Spock should run `tpm2_pcrread` before any TPM enroll story.
-- In-place `cryptsetup reencrypt` is documented as risky fallback only; prefer backup → wipe → restore.
+No passphrases in git. nixosTest uses a throwaway passphrase inside the test VM only.
