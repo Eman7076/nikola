@@ -42,3 +42,8 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 ## Contract notes
 
 Hard lines honored: no Court machine access, no secrets, text/repo for human apply only.
+
+## Deliverables
+
+- **D1** (accepted): this flake (sandbox home)
+- **D2** (draft): [`d2/`](./d2/) controller LUKS + disko — for Spock/Eli review
