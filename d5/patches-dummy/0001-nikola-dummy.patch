@@ -1,0 +1,16 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nikola <nikola@grok-bot.local>
+Date: Thu, 24 Sep 2026 03:00:00 -0500
+Subject: [PATCH] Nikola D5.1 dummy — prove patches/ hook applies
+
+No-op comment only. Court drops real House patches into d5/patches/;
+this file lives under patches-dummy/ for the dummy-patch check only.
+
+--- a/llama_cpp/__init__.py
++++ b/llama_cpp/__init__.py
+@@ -1,4 +1,5 @@
+ from .llama_cpp import *
+ from .llama import *
+ 
++# Nikola D5.1 dummy patch — no-op; proves local patches apply before build.
+ __version__ = "0.3.9"

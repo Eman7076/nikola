@@ -46,7 +46,7 @@ Hard lines honored: no Court machine access, no secrets, text/repo for human app
 ## Deliverables
 
 - **D1** (accepted): this flake (sandbox home)
-- **D2 / D2.2** (draft): [`d2/`](./d2/) controller LUKS + disko + disko-layout nixosTest — for Spock/Eli review
+- **D2 / D2.2 / D2.2.1** (draft→fix): [`d2/`](./d2/) controller LUKS + disko layout test; **disko pinned to v1.12.0** (25.05-era; machines_qemu skew) — Court re-runs QEMU check on rig
 - **D3 / D3.1** (accepted): [`d3/`](./d3/) WireGuard mesh (rig=Arch, controller=NixOS, conduit=Pop) + wg-quick pkgs + IPv6-first endpoint notes — Court owns rollout
-- **D4** (draft): [`d4/`](./d4/) ten ranked controller ideas (prose + honest costs) — for Spock/Eli review
-- **D5** (draft): [`d5/`](./d5/) optional llama.cpp CUDA `devShell` (`nix develop .#llama-cuda`) for the Arch rig — for Spock/Eli review
+- **D4** (accepted): [`d4/`](./d4/) ten ranked controller ideas (prose + honest costs)
+- **D5.1** (draft): [`d5/`](./d5/) `llama-cpp-python` CUDA `devShell` + `patches/` hook + `llama-server` (`nix develop .#llama-cuda`) — for Spock/Eli review
