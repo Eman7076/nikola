@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch / D6.1–D6.2 / D6.4)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch / D6.1–D6.4)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -28,7 +28,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      # CUDA toolkit is unfree — scoped pkgs for D5 only (does not taint default pkgs).
+      # CUDA toolkit is unfree — scoped pkgs for D5 / D6.3 (does not taint default pkgs).
       pkgsCuda = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
@@ -77,6 +77,8 @@
         # D6.4: Spock freshness canary (eval + pure script; no Persistent=true).
         d6-freshness-eval = import ./d6/freshness/eval-freshness.nix { inherit pkgs; };
         d6-freshness-script = import ./d6/freshness/check-canary-script.nix { inherit pkgs; };
+        # D6.3: court-env scaffold — instantiate shell name only (needs pkgsCuda like D5).
+        d6-env-pin-eval = import ./d6/env-pin/eval-env-pin.nix { pkgs = pkgsCuda; };
       };
 
       devShells.${system} = {
@@ -97,6 +99,9 @@
         # D5.2: CUDA JamePeng llama-cpp-python 0.3.49 + llama-server for the Arch rig (see d5/README.md).
         llama-cuda = import ./d5/shell.nix { pkgs = pkgsCuda; };
         d5 = self.devShells.${system}.llama-cuda;
+        # D6.3: Court/Conscia env-pin scaffold (composes D5 via inputsFrom; see d6/03-env-pin.md).
+        court-env = import ./d6/env-pin/shell.nix { pkgs = pkgsCuda; };
+        d6-env = self.devShells.${system}.court-env;
       };
     };
 }
