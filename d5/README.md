@@ -1,6 +1,6 @@
-# D5.4 — JamePeng 0.3.49 + Pillow + HF-test deselects
+# D5.5 — Arch NVIDIA driver shim (JamePeng 0.3.49 CUDA)
 
-**Court Contract 001 · Deliverable D5.4** (disable HF-download tests; builds on D5.3)  
+**Court Contract 001 · Deliverable D5.5** (Arch driver shim; builds on D5.4)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
 House loads models **in-process** via Python bindings (Poet, Familiar, Spockette). Spock: D5 shipped C++ `llama-cpp` binaries only — wrong target. D5.1 added **`llama-cpp-python`** with **CUDA** and a **`d5/patches/`** hook. **D5.2** overrides **`src`** to the **JamePeng fork** at **0.3.49** (House’s tree) so House patches can apply. Keeps **`llama-server`** in the same shell.
@@ -8,6 +8,9 @@ House loads models **in-process** via Python bindings (Poet, Familiar, Spockette
 **D5.3:** Court's real CUDA build on the rig compiled the fork wheel (~7.5 min) then failed only at `pythonRuntimeDepsCheckHook` (`pillow not installed`). Stock recipe deps stayed at 0.3.9's four packages. **Fact:** `overrideAttrs` on `dependencies` does not stick on this pin; append `pillow` to **`propagatedBuildInputs`** (recipe already mirrors the four into PBI).
 
 **D5.4:** Court build passed runtime-deps then failed checkPhase: 82 passed, 3 ERROR (`LocalEntryNotFoundError` from huggingface_hub — sandbox has no network). Appended `test_grammar_sampling_safety`, `test_logit_bias`, `test_custom_logits_processor` to `disabledTests` (same idiom as stock `test_real_model` / `test_real_llama`). Left `doCheck` on so the rest still run.
+
+**D5.5:** Court measured `llama_supports_gpu_offload()` False with bare nix python because `libggml-cuda.so` resolved `libcuda.so.1` to the nixpkgs **stub**. True when a directory of **driver-only** symlinks from `/usr/lib` (`libcuda`, `libnvidia-ptxjitcompiler`, `libnvidia-ml`, `libnvidia-nvvm`) is prepended to `LD_LIBRARY_PATH`. Do **not** put all of `/usr/lib` (Court: nix python then loads Arch glibc → `GLIBC_PRIVATE`). D5.5 adds a `shellHook` shim (NixOS `/run/opengl-driver/lib` if present, else Arch shim under `$XDG_RUNTIME_DIR`) plus `court-llama-env` wrapper. **Package unchanged.** **Untested on Nikola VM (no NVIDIA)** — Court re-runs on the rig.
+
 
 
 Text/Nix for Spock/Eli to apply — Nikola does not SSH to Court machines and this Grok Bot VM has **no NVIDIA GPU** (no CUDA inference was run here).
