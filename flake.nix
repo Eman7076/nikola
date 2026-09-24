@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS drafts)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -32,6 +32,8 @@
       checks.${system} = {
         d2-luks-eval = import ./d2/eval-luks.nix { inherit pkgs; };
         d2-luks-passphrase = import ./d2/nixos-test.nix { inherit pkgs; };
+        d3-wireguard-eval = import ./d3/eval-wireguard.nix { inherit pkgs; };
+        d3-wireguard-mesh = import ./d3/nixos-test.nix { inherit pkgs; };
       };
 
       devShells.${system}.default = pkgs.mkShell {
@@ -45,6 +47,7 @@
           nil
           statix
           deadnix
+          wireguard-tools
         ];
       };
     };
