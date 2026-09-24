@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D5.2 JamePeng llama-cpp-python CUDA)";
+  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
