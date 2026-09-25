@@ -3,19 +3,25 @@
 # Lines: # comments and blank lines ignored.
 # Files must exist and be non-empty; directories must exist.
 #
-# Court downloads ISOs from upstream themselves — filenames below are SLOTS only.
-# Do not commit real ISO bytes, soul backups, or secrets into the nikola repo.
+# ADDITIVE: the fleet already has a 128 GB Ventoy stick (five OSes + Porteus toolkit).
+# List only paths Court requires for recovery readiness. Extra ISOs / files on the stick
+# that are NOT listed here are fine — check-stick.sh does not fail on unlisted paths.
+# Do not wipe sibling ISOs to “match” this example.
+#
+# Court does not commit real ISO bytes, soul backups, or secrets into the nikola repo.
+# Fleet flake tarball: pack from the rig bare repo at the pinned rev; hash in HASHES.txt.
 
-# Ventoy / ISO slots (edit names to match what Court actually wrote)
-ISOs
-ISOs/PLACEHOLDER-chromebook-recovery.iso
-ISOs/PLACEHOLDER-nixos-installer.iso
-ISOs/PLACEHOLDER-porteus-or-live.iso
-
-# Court recovery tree
+# --- required court-recovery tree (additive) ---
 court-recovery
 court-recovery/manifest.txt
 court-recovery/FLAKE_PIN.txt
+court-recovery/HASHES.txt
 court-recovery/check-stick.sh
+court-recovery/fleet-flake-PLACEHOLDER-REV.tar.gz
 court-recovery/backups
 court-recovery/backups/README.txt
+
+# --- optional: gate on a specific existing ISO path Court cares about ---
+# (uncomment and rename to a real filename already on the stick; leave commented to
+# require only the court-recovery tree)
+# ISOs/porteus-toolkit.iso

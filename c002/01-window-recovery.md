@@ -1,22 +1,23 @@
-# C002.1 — Window Ventoy / Porteus recovery runbook (Court-owned)
+# C002.1 — Controller Ventoy / Porteus recovery runbook (Court-owned)
 
 **Court Contract 002 · Deliverable 1** (implements D6 pitch **idea 10**)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli  
-**Applies to:** **window** (NixOS Chromebook conductor; flake host still `.#window` until rename)  
-**Hard line:** Nikola drafts this checklist only. **Nikola does not operate window**, boot sticks, unlock LUKS, restore souls, or claim any live rehearsal. Court runs every step on Court metal / Court media.
+**Applies to:** **controller** (NixOS Chromebook fleet controller)  
+**Name history (FACT):** This machine was called **window** until **2026-09-25** (Eli). Old notes that say “window” mean this host. Fleet flake target: `nixosConfigurations.controller`, `hosts/controller/`, `networking.hostName = "controller"`.  
+**Hard line:** Nikola drafts this checklist only. **Nikola does not operate controller**, boot sticks, unlock LUKS, restore souls, or claim any live rehearsal. Court runs every step on Court metal / Court media.
 
 **Upstream cites (do not re-invent):**
 
 | Path | Role |
 |------|------|
 | [`d2/disko.nix`](../d2/disko.nix) | GPT + 512M ESP + LUKS2 `cryptroot` + btrfs subvols `/`, `/nix`, `/home` |
-| [`d2/REINSTALL.md`](../d2/REINSTALL.md) | Format → install → enroll for `.#window` |
+| [`d2/REINSTALL.md`](../d2/REINSTALL.md) | Format → install → enroll (attr was `.#window` in older text; live target is `.#controller`) |
 | [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) | Idea 1 apply runbook — **this** doc is the parachute it requires |
 | [`d6/PITCH.md`](../d6/PITCH.md) §10 | Menu item this deliverable implements |
-| [`check-stick.sh`](./check-stick.sh) | VM-safe “files present on mounted stick” checker |
-| [`manifest.example.txt`](./manifest.example.txt) | Placeholder manifest Court copies onto the stick |
+| [`check-stick.sh`](./check-stick.sh) | VM-safe “required paths present” checker (extra stick files OK) |
+| [`manifest.example.txt`](./manifest.example.txt) | **Additive** manifest Court merges onto the existing stick |
 
-**Window facts (FACT unless marked):** ~28.5 GB eMMC; **today still unencrypted** (pre–idea 1); PCRs 0–7 all-zero on Cr50 → passphrase is the disk lock after LUKS. Souls/dbs ~**375 MB** class live on **novacourt/rig**, not as a window inventory number — Court decides what of that class (if any) ever rides on recovery media.
+**Controller facts (FACT unless marked):** ~28.5 GB eMMC; **today still unencrypted** (pre–idea 1); PCRs 0–7 all-zero on Cr50 → passphrase is the disk lock after LUKS. Souls/dbs ~**375 MB** class live on **novacourt/rig**, not as a controller inventory number — Court decides what of that class (if any) ever rides on recovery media.
 
 **Ordering:** Recovery first (this doc), then LUKS ([`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md)). Do not treat a beautiful unread runbook as a substitute for encryption — parachute, not harness ([`d6/PITCH.md`](../d6/PITCH.md) §10).
 
@@ -27,13 +28,13 @@
 | Label | Meaning |
 |-------|---------|
 | **FACT** | Measured or already accepted in-repo |
-| **GUESS** | Nikola’s estimate — Court must verify on window / stick |
-| **COURT** | Human at keyboard on window, recovery stick, or offline backup medium |
-| **NIKOLA** | Text/scripts in this repo only — never executed against window by Nikola |
+| **GUESS** | Nikola’s estimate — Court must verify on controller / stick |
+| **COURT** | Human at keyboard on controller, recovery stick, or offline backup medium |
+| **NIKOLA** | Text/scripts in this repo only — never executed against controller by Nikola |
 
 | Who | Owns |
 |-----|------|
-| **COURT** | ISOs, Ventoy install, stick layout, hashes, souls backup custody, rehearsal, live unlock/restore |
+| **COURT** | Existing stick inventory, additive `court-recovery/` tree, hashes, souls backup custody, rehearsal, live unlock/restore |
 | **NIKOLA** | This markdown, `check-stick.sh`, example manifest, flake check wiring |
 | **Neither** | Redistributing copyrighted ISOs; putting soul bytes or keys in git |
 
@@ -41,56 +42,59 @@
 
 ## 1. Purpose (COURT)
 
-Parachute **before** D2 LUKS on window’s ~28.5 GB eMMC ([`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md)):
+Parachute **before** D2 LUKS on controller’s ~28.5 GB eMMC ([`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md)):
 
 1. Rehearse once on **this** Chromebook **before** any destructive `disko` apply.
 2. Keep a known path when eMMC dies, passphrase is lost-but-recovery-key-exists, or post-LUKS boot fails.
 3. Know how to restore Court-owned ~375 MB-class souls from **Court’s** encrypted/offline backup — Nikola never holds souls.
-4. Know how to fetch a recorded flake pin (`Eman7076/nikola` or Court fleet flake) without guessing revs.
+4. Know how to materialize the **fleet flake** at a recorded pin **without** needing GitHub or a live path to the rig bare repo (default: pre-seeded tarball on the stick).
 
 **Stop rule:** If the stick has not passed §7 rehearsal, **do not** start [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) §4.
 
 ---
 
-## 2. What lives on the stick (COURT supplies)
+## 2. What lives on the stick (COURT — existing media)
 
-Nikola does **not** redistribute ISOs. Court downloads from upstream, writes Ventoy, and records versions + hashes on the stick manifest.
+**FACT:** The fleet already has a **128 GB Ventoy stick** holding **five OSes** plus the **Porteus toolkit**. It is the fleet’s fifth member. Section 2 is a **checklist against that real stick**, not a “build Ventoy from scratch” guide.
 
-### 2.1 Layout (GUESS — Court picks final tree)
+Nikola does **not** redistribute ISOs. Court keeps the existing layout; **adds** the `court-recovery/` tree (and any Court-chosen pin/tarball files). Do **not** wipe or replace the five OS slots to satisfy this runbook.
 
-Suggested root on the USB after Ventoy is installed (Ventoy keeps its own ESP/data partitions; Court places content under the Ventoy data volume):
+### 2.1 Existing layout (FACT) + additive tree (COURT)
 
 ```text
-<stick>/
-  (Ventoy boot files — installed by Court via Ventoy tool)
-  ISOs/                          # or Ventoy default ISO folder Court prefers
-    <chromebook-recovery>.iso    # Chromebook recovery image — COURT downloads
-    <nixos-installer>.iso        # NixOS installer — COURT downloads
-    <porteus-or-live>.iso        # Porteus or Court-chosen live Linux with cryptsetup + network
-  court-recovery/
-    manifest.txt                 # required paths list (start from manifest.example.txt)
-    FLAKE_PIN.txt                # rev + date + who recorded
-    check-stick.sh               # copy of c002/check-stick.sh
-    backups/                     # SLOT only — Court may keep souls offline elsewhere
-      README.txt                 # “souls backup rides on medium X” pointer — no secret bytes
-    NOTES.txt                    # optional Court rehearsal log
+<stick>/                        # EXISTING Ventoy volume — leave intact
+  (Ventoy boot files)
+  … five OS ISOs + Porteus toolkit (Court’s current names) …
+  court-recovery/               # ADD — do not replace sibling ISOs
+    manifest.txt                # required paths only (start from manifest.example.txt)
+    HASHES.txt                  # sha256 (or Court-standard) for listed blobs
+    FLAKE_PIN.txt               # fleet pin + how to materialize it
+    check-stick.sh              # copy of c002/check-stick.sh
+    fleet-flake-<REV>.tar.gz    # DEFAULT materialization of the fleet flake (see §4)
+    backups/                    # SLOT only — Court may keep souls offline elsewhere
+      README.txt                # “souls backup rides on medium X” — no secret bytes
+    NOTES.txt                   # Court rehearsal log
 ```
 
-**ISO slots (names are slots, not redistributed files):**
+**ISO slots:** Court already chose versions on the stick. This runbook does **not** invent filenames for the five OSes. If Court wants the checker to gate on a specific ISO path, **add that relative path** to `manifest.txt`. Paths **not** listed are ignored — extra ISOs are fine.
 
-| Slot | Intent | Who picks version |
-|------|--------|-------------------|
-| Chromebook recovery | Vendor recovery / firmware path if eMMC is toast | **COURT** — download from Google/ChromeOS recovery upstream Court already trusts |
-| NixOS installer | Fresh `nixos-install` / flake install per [`d2/REINSTALL.md`](../d2/REINSTALL.md) | **COURT** — matching nixpkgs channel Court boots |
-| Porteus (or live Linux) | cryptsetup + mount + rsync/tar + network for flake fetch | **COURT** — Porteus is the pitch default; any live ISO Court verifies can run `cryptsetup` + network is fine (**GUESS:** Porteus remains lightest Ventoy peer) |
+| Intent | Who |
+|--------|-----|
+| Keep five OS + Porteus toolkit as-is | **COURT** (already on stick) |
+| Add `court-recovery/` + fleet-flake tarball + pin/hashes | **COURT** |
+| Optional: list one or more ISO paths in the manifest as hard requirements | **COURT** |
 
-Label every ISO filename Court actually uses in `manifest.txt`. Record **sha256** (or Court-standard hash) next to each name in `NOTES.txt` or a sibling `HASHES.txt` Court maintains — not in this repo’s example as fake hashes.
+Record **sha256** (or Court-standard hash) for every **listed** blob in `HASHES.txt` on the stick — not as fake hashes in this repo.
 
-### 2.2 Manifest (COURT maintains)
+### 2.2 Manifest (COURT maintains — additive)
 
-Ship starts from [`manifest.example.txt`](./manifest.example.txt). Court copies it to `court-recovery/manifest.txt` on the stick and edits paths to match real ISO filenames and backup slot names.
+Ship starts from [`manifest.example.txt`](./manifest.example.txt). Court copies it to `court-recovery/manifest.txt` and edits:
 
-Checker: [`check-stick.sh`](./check-stick.sh) — reads the manifest; exit 0 only if every listed path exists and files are non-empty. No network. Safe to dry-run on Nikola’s VM against a fake tree.
+- Required: `court-recovery/` files + the fleet-flake tarball path Court actually wrote.
+- Optional: specific existing ISO paths Court wants fail-closed.
+- **Do not** list every ISO on the stick. **Do not** remove sibling ISOs to make the tree “match the example.”
+
+Checker: [`check-stick.sh`](./check-stick.sh) — exit 0 only if every **listed** path exists and files are non-empty. Unlisted files/dirs on the stick are **tolerated** (no “unexpected file” fail). No network. Safe to dry-run on Nikola’s VM against a fake tree.
 
 ```bash
 # On a machine with the stick mounted at /mnt/stick (COURT):
@@ -104,7 +108,7 @@ COURT_RECOVERY_MANIFEST=/mnt/stick/court-recovery/manifest.txt \
 
 ## 3. Souls restore (~375 MB class) — COURT only
 
-**FACT (rig):** Irreplaceable data class ~**375 MB** souls/dbs on **novacourt** ([`d6/PITCH.md`](../d6/PITCH.md) fleet table). That is a **rig** fact, not “window holds 375 MB.”
+**FACT (rig):** Irreplaceable data class ~**375 MB** souls/dbs on **novacourt** ([`d6/PITCH.md`](../d6/PITCH.md) fleet table). That is a **rig** fact, not “controller holds 375 MB.”
 
 **NIKOLA never holds souls.** Restore means Court copies from an **encrypted/offline backup Court already owns** onto a recovered system.
 
@@ -124,46 +128,71 @@ Do **not** commit these files or their plaintext. The example manifest lists a *
 - [ ] If disk is already LUKS (**post–idea 1**): unlock per §5, then mount btrfs subvols.
 - [ ] If disk is still unencrypted (**today — FACT**): mount eMMC partitions directly; skip cryptsetup.
 - [ ] Decrypt backup with Court’s existing age/gpg custody (**not** documented as key material here).
-- [ ] `rsync` or `tar -x` into the Court-chosen path on the recovered system (GUESS: often under `/home/…` or a Court souls tree on novacourt after mesh is up — Court decides; window may only be a staging host).
+- [ ] `rsync` or `tar -x` into the Court-chosen path on the recovered system (GUESS: often under `/home/…` or a Court souls tree on novacourt after mesh is up — Court decides; controller may only be a staging host).
 - [ ] Verify size/hash Court recorded at backup time (`du -h`, `sha256sum` against Court’s offline notes).
 - [ ] Confirm Nikola’s repo still contains **zero** soul bytes.
 
 ---
 
-## 4. Fetch a known flake pin (COURT)
+## 4. Materialize a known flake pin (COURT)
 
-Stick carries a small `court-recovery/FLAKE_PIN.txt` that Court updates. Suggested format (one fact per line):
+Two different repos — **label which is which:**
+
+| Kind | What | Where it lives | Disaster default |
+|------|------|----------------|------------------|
+| **Fleet flake** (canonical) | What **controller** boots (`nixosConfigurations.controller`, …) | Bare repo on the **rig**, reachable only from inside the house or over the mesh — **not** on GitHub | **Stick tarball** at pinned rev (§4.1) |
+| **Contractor flake** (this repo) | Nikola’s sandbox / Contract deliverables (`Eman7076/nikola` on GitHub) | Public GitHub | Optional; useful for contractor docs/checks, **not** the machine’s boot source |
+
+Stick carries `court-recovery/FLAKE_PIN.txt` that Court updates. Suggested format:
 
 ```text
-repo=Eman7076/nikola
+# Fleet flake (canonical — boots controller). NOT the GitHub contractor repo.
+kind=fleet-flake
+source=stick-tarball
+path=court-recovery/fleet-flake-0123456789abcdef0123456789abcdef01234567.tar.gz
 rev=0123456789abcdef0123456789abcdef01234567
-date=2026-09-24
+date=2026-09-25
 recorded_by=Court
-notes=contractor flake pin before window LUKS rehearsal
+notes=pre-seeded before controller LUKS rehearsal
+# Optional contractor pin (GitHub example only — does not replace fleet flake):
+# contractor_repo=Eman7076/nikola
+# contractor_rev=<40 hex>
 ```
 
-`rev=` must be a 40-char hex git SHA when present ([`check-stick.sh`](./check-stick.sh) optionally validates that line).
+`rev=` must be a 40-char hex git SHA when present ([`check-stick.sh`](./check-stick.sh) optionally validates that line). Record the tarball’s hash in `HASHES.txt`.
 
-### 4.1 Ways to materialize the pin (COURT — needs network on the live ISO)
+### 4.1 DEFAULT — extract the pre-seeded fleet-flake tarball (no network)
 
 ```bash
-# A) Shallow clone at recorded rev
-git clone --depth 1 https://github.com/Eman7076/nikola.git
-cd nikola
-git fetch --depth 1 origin <REV>
-git checkout <REV>
-
-# B) Existing clone
-git fetch origin <REV>
-git checkout <REV>
-
-# C) Nix prefetch (no working tree needed for some workflows)
-nix flake prefetch "github:Eman7076/nikola?rev=<REV>"
+# From the live ISO with the stick mounted (COURT):
+mkdir -p /tmp/fleet-flake
+tar -xzf /mnt/stick/court-recovery/fleet-flake-<REV>.tar.gz -C /tmp/fleet-flake
+# Then: nixos-rebuild / nixos-install / eval against that tree at the pinned rev Court packed.
 ```
 
-Court fleet flake (if different from this contractor repo) uses the same pattern with Court’s repo URL and the rev recorded in `FLAKE_PIN.txt`. Prefer the stick’s recorded rev over “whatever main is today.”
+Court builds that tarball on the rig (or any machine that can read the bare fleet repo) at the recorded rev, copies it onto the stick, and lists it in the manifest + `HASHES.txt`. **This is the path that works away from home when the mesh is down.**
 
-**GUESS:** live Porteus/NixOS ISO networking is enough for github.com; if air-gapped, Court pre-seeds a tarball of the pinned tree on the stick and lists it in the manifest.
+### 4.2 If the mesh is up (demoted — optional)
+
+Only when Court can reach the rig bare repo over the mesh (or from inside the house):
+
+```bash
+# Illustrative — Court fills the real bare-repo URL / path Court already uses
+git clone <court-fleet-bare-or-mesh-url> fleet-flake
+cd fleet-flake
+git fetch origin <REV>
+git checkout <REV>
+```
+
+Do **not** treat GitHub clone of `Eman7076/nikola` as a substitute for the fleet flake. The contractor repo may still be fetched from GitHub when useful for Nikola docs/checks:
+
+```bash
+# Contractor flake only (GitHub) — labeled, optional
+git clone --depth 1 https://github.com/Eman7076/nikola.git
+cd nikola && git fetch --depth 1 origin <CONTRACTOR_REV> && git checkout <CONTRACTOR_REV>
+```
+
+Prefer the stick’s recorded fleet rev over “whatever is tip today.”
 
 ---
 
@@ -202,41 +231,42 @@ Then inspect, restore (§3), or `nixos-install` / chroot rebuild per Court judgm
 
 ---
 
-## 6. Pre-LUKS disaster (today — FACT: window still unencrypted)
+## 6. Pre-LUKS disaster (today — FACT: controller still unencrypted)
 
 If eMMC fails or Court needs a clean reinstall **before** idea 1 encrypts the disk:
 
-1. Boot live ISO from the Ventoy stick (Porteus or NixOS installer).
+1. Boot live ISO from the **existing** Ventoy stick (Porteus toolkit or another Court-chosen slot).
 2. Mount the eMMC partitions (no cryptsetup). Confirm **mmcblk1**/by-id — not mmcblk0 by habit.
-3. Copy what matters to offline media (flake pin, public mesh inventory pointers, `/home` Court marks irreplaceable). **No private keys in this runbook’s examples.**
-4. Reinstall via [`d2/REINSTALL.md`](../d2/REINSTALL.md) once Court is ready for LUKS — or restore an unencrypted image if Court kept a full pre-migration backup (**GUESS:** rare; plan for “restore onto fresh layout” instead).
+3. Copy what matters to offline media (fleet-flake tarball / pin, public mesh inventory pointers, `/home` Court marks irreplaceable). **No private keys in this runbook’s examples.**
+4. Reinstall via [`d2/REINSTALL.md`](../d2/REINSTALL.md) once Court is ready for LUKS — or restore an unencrypted image if Court kept a full pre-migration backup (**GUESS:** rare; plan for “restore onto fresh layout” instead). Target attr: **`.#controller`**.
 
 ---
 
 ## 7. Rehearsal protocol (the whole point — COURT)
 
-Do this on **window** before any disko wipe:
+Do this on **controller** before any disko wipe:
 
-1. [ ] Write Ventoy + Court-chosen ISOs; copy `court-recovery/` tree including edited `manifest.txt`, `FLAKE_PIN.txt`, and `check-stick.sh`.
-2. [ ] Boot the stick on **this** Chromebook; confirm firmware/boot menu reaches Ventoy and each ISO slot Court cares about starts (or document which slots fail — GUESS: some Chromebook recovery images need specific firmware paths).
-3. [ ] From the live environment (or from another machine with the stick mounted), run:
+1. [ ] **Confirm** the existing 128 GB Ventoy stick still boots its five OS + Porteus toolkit slots Court cares about (do **not** rebuild Ventoy unless Court already planned to).
+2. [ ] **Add** `court-recovery/` (edited `manifest.txt`, `FLAKE_PIN.txt`, `HASHES.txt`, `check-stick.sh`, fleet-flake tarball at pinned rev). Leave sibling ISOs alone.
+3. [ ] Boot the stick on **this** Chromebook; confirm firmware/boot menu reaches Ventoy and the slots Court needs for recovery start (or document which slots fail — GUESS: some Chromebook recovery images need specific firmware paths).
+4. [ ] From the live environment (or from another machine with the stick mounted), run:
 
    ```bash
    bash court-recovery/check-stick.sh /path/to/stick-root
    ```
 
-   Expect all `OK` lines; fix `MISSING` before claiming rehearsal pass.
-4. [ ] **Dry run unlock-or-mount without wiping:**
+   Expect all `OK` lines for **listed** paths; fix `MISSING` before claiming rehearsal pass. Extra unlisted ISOs must **not** fail the check.
+5. [ ] **Dry run unlock-or-mount without wiping:**
    - Pre-LUKS (today): mount eMMC read-only if possible; list trees; unmount. Do **not** run `disko --mode disko`.
    - Post-LUKS (after idea 1): practice `cryptsetup open` + subvol mounts on a **spare** or accept that first live unlock after apply *is* the practice — still rehearse stick boot + checker **before** apply.
-5. [ ] Optionally practice flake prefetch at the pinned rev on a throwaway directory (network).
-6. [ ] Record pass/fail + date + who in `court-recovery/NOTES.txt` on the stick (and/or Court ops log). Example line:
+6. [ ] Practice extracting the fleet-flake tarball to a throwaway directory (**default**). Optionally, **if mesh is up**, practice clone from the rig bare repo — demoted path only.
+7. [ ] Record pass/fail + date + who in `court-recovery/NOTES.txt` on the stick (and/or Court ops log). Example line:
 
    ```text
-   2026-09-24 rehearsal PASS window Ventoy+check-stick — <name>
+   2026-09-25 rehearsal PASS controller Ventoy+check-stick+fleet-tarball — <name>
    ```
 
-7. [ ] Only then continue to [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) destructive steps.
+8. [ ] Only then continue to [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) destructive steps.
 
 **NIKOLA:** may prove the checker against a fake tree via `checks.x86_64-linux.c002-stick-check`. That is **not** a substitute for Court boot rehearsal.
 
@@ -244,12 +274,12 @@ Do this on **window** before any disko wipe:
 
 ## 8. room note (think-only boundary)
 
-**room** is a Bazzite render peer (immutable render / wire-only by Eli’s ruling). 
+**room** is a Bazzite render peer (immutable render / wire-only by Eli’s ruling).
 
 - **No Court souls on room.**
 - Nikola does **not** operate room.
-- Recovery story’s fifth member is the **Porteus/Ventoy stick**, not room.
-- Render jobs only; do not ask room to hold backups, unlock LUKS, or host flake pins for window mortality.
+- Recovery story’s fifth member is the **existing Porteus/Ventoy stick**, not room.
+- Render jobs only; do not ask room to hold backups, unlock LUKS, or host flake pins for controller mortality.
 
 ---
 
@@ -268,6 +298,7 @@ Rollback table in D6.1 already points at Porteus/Ventoy; treat **this** Contract
 ## 10. What Nikola verified on the contractor VM (this session)
 
 - Runbook cites real `d2/disko.nix` names (`cryptroot`, subvols `/root` `/nix` `/home`, 512M ESP) and `d2/REINSTALL.md`.
-- `check-stick.sh` + fake-tree test pass under `checks.x86_64-linux.c002-stick-check` (no QEMU).
-- **Nikola did not** boot Ventoy, unlock LUKS, restore souls, or operate window/room.
-- ISO URLs are intentionally omitted so this repo cannot be read as redistributing proprietary images — Court downloads upstream themselves.
+- `check-stick.sh` + fake-tree test pass under `checks.x86_64-linux.c002-stick-check` (no QEMU), including **extra unlisted ISO tolerated**.
+- **Nikola did not** boot Ventoy, unlock LUKS, restore souls, or operate controller/room.
+- ISO URLs are intentionally omitted so this repo cannot be read as redistributing proprietary images — Court already holds the stick media.
+- Corrections vs first C002.1 draft (Spock 2026-09-25): **controller** rename + history line; fleet flake **stick tarball default** (network demoted); **additive** checklist on the **existing** 128 GB stick.

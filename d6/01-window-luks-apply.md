@@ -1,9 +1,10 @@
-# D6.1 — Window LUKS migration runbook (Court-owned apply)
+# D6.1 — Controller LUKS migration runbook (Court-owned apply)
 
 **Court Contract 001 · Deliverable D6.1** (implements D6 pitch idea 1)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli  
-**Applies to:** **window** (NixOS Chromebook conductor; flake host still `.#window` until rename)  
-**Hard line:** Nikola drafts this checklist only. **Nikola does not operate window.** Court runs every command below on Court metal. No claim that Nikola applied LUKS, unlocked, or rejoined mesh.
+**Applies to:** **controller** (NixOS Chromebook fleet controller; flake attr `.#controller`)  
+**Name history (FACT):** Called **window** until **2026-09-25** (Eli). Old notes that say “window” mean this host. Fleet flake: `nixosConfigurations.controller`, `hosts/controller/`, `networking.hostName = "controller"`.  
+**Hard line:** Nikola drafts this checklist only. **Nikola does not operate controller.** Court runs every command below on Court metal. No claim that Nikola applied LUKS, unlocked, or rejoined mesh.
 
 **Accepted upstream (cite these, do not re-invent):**
 
@@ -12,13 +13,13 @@
 | [`d2/disko.nix`](../d2/disko.nix) | Fail-closed GPT + **512M ESP** + LUKS2 (argon2id) + btrfs subvols `/`, `/nix`, `/home` |
 | [`d2/luks.nix`](../d2/luks.nix) | Additive initrd.systemd + TPM module list + cryptsetup/tpm2-tools + GC (does **not** own `boot.loader.*` / `zramSwap`) |
 | [`d2/flake-fragment.nix`](../d2/flake-fragment.nix) | Court flake wiring sketch: `disko` input + `disko.nixosModules.disko` + imports |
-| [`d2/REINSTALL.md`](../d2/REINSTALL.md) | Keyboard steps for `.#window` (format → install → enroll) |
+| [`d2/REINSTALL.md`](../d2/REINSTALL.md) | Keyboard steps for `.#controller` (format → install → enroll; older text may still say `.#window`) |
 | [`d2/README.md`](../d2/README.md) | D2.2.1 pin note: disko **v1.12.0**; nested-KVM limits on Nikola’s VM |
 | [`d2/nixos-test.nix`](../d2/nixos-test.nix) | Passphrase LUKS boot test (no Cr50) — `checks…d2-luks-passphrase` |
 | [`d2/nixos-test-disko.nix`](../d2/nixos-test-disko.nix) + [`d2/disko-layout-test.nix`](../d2/disko-layout-test.nix) | Layout test GPT+ESP+LUKS2+btrfs — `checks…d2-disko-layout` |
 | [`d3/`](../d3/) | WireGuard mesh (rejoin after unlock) — Court owns rollout |
 
-**Window facts (from D4 / D6 pitch unless marked guess):** ~28.5 GB eMMC; currently unencrypted; PCRs 0–7 all-zero on Cr50 → **passphrase is the disk lock**; **do not claim TPM unlock** for trust. Threat model = lost/stolen **at rest**.
+**Controller facts (from D4 / D6 pitch unless marked guess):** ~28.5 GB eMMC; currently unencrypted; PCRs 0–7 all-zero on Cr50 → **passphrase is the disk lock**; **do not claim TPM unlock** for trust. Threat model = lost/stolen **at rest**.
 
 **Parachute (not a substitute for encryption):** pair this apply with a rehearsed Porteus/Ventoy recovery path — **Contract 002 D1** [`c002/01-window-recovery.md`](../c002/01-window-recovery.md) (implements D6 pitch **idea 10**). Recovery media is the parachute; LUKS is the harness. Do not treat idea 10 as optional comfort after a failed apply — rehearse **before** step 5 / §4 if the stick is not already proven once.
 
@@ -29,9 +30,9 @@
 | Label | Meaning |
 |-------|---------|
 | **FACT** | Measured or already accepted in-repo |
-| **GUESS** | Nikola’s estimate — Court must verify on window |
-| **COURT** | Human at keyboard on window / recovery stick |
-| **NIKOLA** | Text/Nix in this repo only — never executed against window by Nikola |
+| **GUESS** | Nikola’s estimate — Court must verify on controller |
+| **COURT** | Human at keyboard on controller / recovery stick |
+| **NIKOLA** | Text/Nix in this repo only — never executed against controller by Nikola |
 
 ---
 
@@ -39,8 +40,8 @@
 
 ### 1.1 Irreplaceable vs replaceable
 
-- **FACT (rig):** Court irreplaceable data class is ~**375 MB** souls/dbs on **novacourt**. That number is a **rig** fact, not a window inventory.
-- **For window (COURT):** inventory what lives only on the Chromebook and is not on the rig. Typical classes (verify, do not assume sizes):
+- **FACT (rig):** Court irreplaceable data class is ~**375 MB** souls/dbs on **novacourt**. That number is a **rig** fact, not a controller inventory.
+- **For controller (COURT):** inventory what lives only on the Chromebook and is not on the rig. Typical classes (verify, do not assume sizes):
   - Court flake **pins** / lockfile copy Court actually boots (`flake.lock`, host modules Court did not upstream)
   - WireGuard **public** material pointers (pubkeys, endpoint strings, peer inventory) — **never** private key bytes in backup examples or git
   - Non-secret configs Court would hate to re-type (hostname notes, firewall toggles, mesh address reminders)
@@ -48,7 +49,7 @@
 
 ### 1.2 Backup checklist (COURT)
 
-- [ ] Copy window flake pin + lock to an **offline** medium Court controls (USB that does **not** travel in the same bag as the Chromebook — GUESS: matches D4 #9 threat note).
+- [ ] Copy controller / fleet flake pin + lock (or the stick fleet-flake tarball) to an **offline** medium Court controls (USB that does **not** travel in the same bag as the Chromebook — GUESS: matches D4 #9 threat note).
 - [ ] Record `wg show` **public** peer lines / Court peer inventory pointers (pubs + endpoints only). Private key files: Court backs them up under Court’s existing secret custody — **do not paste key material into this runbook or the flake**.
 - [ ] `lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS,FSTYPE` and `ls -l /dev/disk/by-id/` captured to the backup medium (needed to fill `disko.nix` by-id).
 - [ ] Confirm Porteus/Ventoy stick is bootable on **this** Chromebook once (COURT rehearsal per [`c002/01-window-recovery.md`](../c002/01-window-recovery.md)). If not rehearsed, **stop** and finish Contract 002 D1 dry-run first (GUESS: botched 28.5 GB apply without USB recovery costs a travel week — D6 pitch).
@@ -64,7 +65,7 @@
 ## 2. Pre-flight — verify free space + layout pin (COURT)
 
 ```bash
-# On live window (before installer), record:
+# On live controller (before installer), record:
 df -h /
 df -h /boot 2>/dev/null || true
 lsblk -b -o NAME,SIZE,TYPE,MOUNTPOINTS
@@ -75,7 +76,7 @@ ls -l /dev/disk/by-id/
 - [ ] Confirm **by-id** symlink for the internal eMMC. **FACT:** Court eMMC has shown up as **mmcblk1**, not mmcblk0 — never default to `/dev/mmcblk0` (`d2/disko.nix`, `d2/REINSTALL.md`).
 - [ ] Confirm Court flake will use disko **v1.12.0** (or the pin Court already accepted with D2.2.1). Nikola’s contractor flake pins:
   `git+https://github.com/nix-community/disko.git?ref=refs/tags/v1.12.0&rev=ff442f5d1425feb86344c028298548024f21256d`
-  (see top-level `flake.nix`). Court may vendor the same tag in the window flake.
+  (see top-level `flake.nix`). Court may vendor the same tag in the controller / fleet flake.
 
 ### ESP / generation budget (FACT from D2)
 
@@ -85,7 +86,7 @@ ls -l /dev/disk/by-id/
 
 ---
 
-## 3. Merge accepted D2 modules into the Court window flake (COURT)
+## 3. Merge accepted D2 modules into the Court controller flake (COURT)
 
 Follow [`d2/flake-fragment.nix`](../d2/flake-fragment.nix) and [`d2/REINSTALL.md`](../d2/REINSTALL.md) §0:
 
@@ -102,7 +103,7 @@ Follow [`d2/flake-fragment.nix`](../d2/flake-fragment.nix) and [`d2/REINSTALL.md
 ### Safe eval before format
 
 ```bash
-nix flake check '.#window'   # or: nixos-rebuild dry-activate --flake '.#window'
+nix flake check '.#controller'   # or: nixos-rebuild dry-activate --flake '.#controller'
 ```
 
 Expect failure until by-id is real and conflicting `fileSystems` are removed (`d2/REINSTALL.md` §1).
@@ -131,7 +132,7 @@ Boot installer / maintenance environment with the flake available (`d2/REINSTALL
 ```bash
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko/v1.12.0 -- \
   --mode disko \
-  --flake '.#window'
+  --flake '.#controller'
 ```
 
 **GUESS:** pinning the disko *runner* to `v1.12.0` matches the flake input; if Court prefers `nix run` from the flake’s own disko input, use that equivalent. `askPassword = true` → passphrase prompt at format time (no `/tmp` password file).
@@ -139,9 +140,9 @@ sudo nix --experimental-features "nix-command flakes" run github:nix-community/d
 ### 4.2 Install / switch
 
 ```bash
-sudo nixos-install --flake '.#window'
+sudo nixos-install --flake '.#controller'
 # later, on a booted system:
-sudo nixos-rebuild switch --flake '.#window'
+sudo nixos-rebuild switch --flake '.#controller'
 ```
 
 ### 4.3 First unlock smoke (COURT)
@@ -183,7 +184,7 @@ Store offline. Not in git (`d2/REINSTALL.md` §5).
 
 ## 6. Done criteria (COURT signs)
 
-- [ ] Passphrase unlock → multi-user (or Court-equivalent) on window.
+- [ ] Passphrase unlock → multi-user (or Court-equivalent) on controller.
 - [ ] btrfs subvols mounted as in `d2/disko.nix`; ESP mounted at `/boot`.
 - [ ] Mesh rejoined; Court-critical remote path verified.
 - [ ] Recovery key stored offline; no secrets added to git.
@@ -195,5 +196,5 @@ Store offline. Not in git (`d2/REINSTALL.md` §5).
 ## 7. What Nikola verified on the contractor VM (this session)
 
 - Runbook cites real `d2/` paths and the 512 MiB ESP / `configurationLimit = 10` pairing from accepted D2 text.
-- **Nikola did not** run disko, `nixos-install`, or any command against window.
+- **Nikola did not** run disko, `nixos-install`, or any command against controller.
 - Nested KVM on this VM remains hostile to QEMU nixosTests (same class as D2.2) — Court re-runs layout checks on the rig if desired before apply.

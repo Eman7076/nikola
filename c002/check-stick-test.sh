@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # C002.1 — pure stick-check proof (no QEMU, no network).
-# Builds a fake stick from manifest.example.txt; asserts pass + missing-file fail.
+# Builds a fake stick from manifest.example.txt; asserts pass + missing-file fail
+# + extra unlisted ISO tolerated.
 # Author: Nikola (Court Contract 002)
 
 set -euo pipefail
@@ -34,19 +35,15 @@ while IFS= read -r raw || [[ -n "$raw" ]]; do
   [[ "$line" == /* || "$line" == *..* ]] && fail "example has unsafe path: $line"
 
   target="$STICK/$line"
-  # Heuristic: ISO / .txt / .sh / FLAKE_PIN / manifest → files; else if ends without
-  # extension and no slash-file pattern from example, treat known dirs.
   case "$line" in
     */ | ISOs | court-recovery | court-recovery/backups)
       mkdir -p "$target"
       ;;
-    *.iso | *.txt | *.sh | */FLAKE_PIN.txt | */manifest.txt | */README.txt | */check-stick.sh)
+    *.iso | *.txt | *.sh | *.tar.gz | */FLAKE_PIN.txt | */manifest.txt | */README.txt | */HASHES.txt | */check-stick.sh)
       mkdir -p "$(dirname "$target")"
-      # Placeholder non-empty content (not real ISOs / souls)
       printf 'placeholder for %s\n' "$line" >"$target"
       ;;
     *)
-      # Default: if path has a final component with a dot, file; else directory
       base="$(basename "$line")"
       if [[ "$base" == *.* ]]; then
         mkdir -p "$(dirname "$target")"
@@ -58,23 +55,30 @@ while IFS= read -r raw || [[ -n "$raw" ]]; do
   esac
 done <"$EXAMPLE"
 
-# Manifest on the stick must list the same relative paths; copy example into place.
+# Simulate existing five-OS stick: unlisted sibling ISOs must not fail the check.
+mkdir -p "$STICK/ISOs"
+printf 'existing os A\n' >"$STICK/ISOs/existing-os-a.iso"
+printf 'existing os B\n' >"$STICK/ISOs/existing-os-b.iso"
+printf 'porteus toolkit slot\n' >"$STICK/ISOs/porteus-toolkit.iso"
+
 mkdir -p "$STICK/court-recovery"
 cp "$EXAMPLE" "$STICK/court-recovery/manifest.txt"
-# Ensure check script path exists as listed
 cp "$CHECK" "$STICK/court-recovery/check-stick.sh"
 chmod +x "$STICK/court-recovery/check-stick.sh"
 
-# Valid FLAKE_PIN (40 hex)
 cat >"$STICK/court-recovery/FLAKE_PIN.txt" <<'PIN'
-repo=Eman7076/nikola
+kind=fleet-flake
+source=stick-tarball
+path=court-recovery/fleet-flake-PLACEHOLDER-REV.tar.gz
 rev=0123456789abcdef0123456789abcdef01234567
-date=2026-09-24
+date=2026-09-25
 recorded_by=Nikola-test
-notes=fake pin for c002 stick check only
+notes=fake fleet pin for c002 stick check only
 PIN
 
-# Re-touch ISO placeholders if example listed them (already created above).
+printf 'sha256  deadbeef  court-recovery/fleet-flake-PLACEHOLDER-REV.tar.gz\n' \
+  >"$STICK/court-recovery/HASHES.txt"
+
 set +e
 out="$(bash "$CHECK" "$STICK" 2>&1)"
 rc=$?
@@ -82,13 +86,12 @@ set -e
 echo "$out"
 [[ "$rc" -eq 0 ]] || fail "complete stick: expected exit 0, got $rc"
 echo "$out" | grep -q '^summary: ok=' || fail "complete stick: missing summary"
-echo "ok complete-stick → exit 0"
+echo "ok complete-stick (with extra unlisted ISOs) → exit 0"
 
 # --- Case 2: missing required file → exit nonzero ---
 STICK2="${WORKDIR}/stick-missing"
 cp -a "$STICK" "$STICK2"
-# Remove one listed ISO so checker fails
-rm -f "$STICK2/ISOs/PLACEHOLDER-porteus-or-live.iso"
+rm -f "$STICK2/court-recovery/fleet-flake-PLACEHOLDER-REV.tar.gz"
 set +e
 out2="$(bash "$CHECK" "$STICK2" 2>&1)"
 rc2=$?
@@ -102,9 +105,10 @@ echo "ok missing-file → exit $rc2"
 STICK3="${WORKDIR}/stick-badpin"
 cp -a "$STICK" "$STICK3"
 cat >"$STICK3/court-recovery/FLAKE_PIN.txt" <<'BAD'
-repo=Eman7076/nikola
+kind=fleet-flake
+source=stick-tarball
 rev=not-a-real-sha
-date=2026-09-24
+date=2026-09-25
 recorded_by=Nikola-test
 BAD
 set +e

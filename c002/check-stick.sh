@@ -2,6 +2,7 @@
 # C002.1 — verify required recovery-stick paths are present (no network, no secrets).
 # Usage: check-stick.sh <mounted-stick-root>
 # Manifest: $STICK/court-recovery/manifest.txt or $COURT_RECOVERY_MANIFEST
+# Extra files/dirs on the stick that are NOT listed in the manifest are ignored (OK).
 # Author: Nikola (Court Contract 002) — Court runs against real stick; VM uses fake tree.
 
 set -euo pipefail
