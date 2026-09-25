@@ -1,0 +1,21 @@
+# Court recovery stick manifest (example — COURT copies onto the stick and edits)
+# Paths are relative to the mounted stick root.
+# Lines: # comments and blank lines ignored.
+# Files must exist and be non-empty; directories must exist.
+#
+# Court downloads ISOs from upstream themselves — filenames below are SLOTS only.
+# Do not commit real ISO bytes, soul backups, or secrets into the nikola repo.
+
+# Ventoy / ISO slots (edit names to match what Court actually wrote)
+ISOs
+ISOs/PLACEHOLDER-chromebook-recovery.iso
+ISOs/PLACEHOLDER-nixos-installer.iso
+ISOs/PLACEHOLDER-porteus-or-live.iso
+
+# Court recovery tree
+court-recovery
+court-recovery/manifest.txt
+court-recovery/FLAKE_PIN.txt
+court-recovery/check-stick.sh
+court-recovery/backups
+court-recovery/backups/README.txt

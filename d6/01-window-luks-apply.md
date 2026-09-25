@@ -20,7 +20,7 @@
 
 **Window facts (from D4 / D6 pitch unless marked guess):** ~28.5 GB eMMC; currently unencrypted; PCRs 0–7 all-zero on Cr50 → **passphrase is the disk lock**; **do not claim TPM unlock** for trust. Threat model = lost/stolen **at rest**.
 
-**Parachute (not a substitute for encryption):** pair this apply with a rehearsed Porteus/Ventoy recovery path (D6 pitch **idea 10**). Recovery media is the parachute; LUKS is the harness. Do not treat idea 10 as optional comfort after a failed apply — rehearse **before** step 5 if the stick is not already proven once.
+**Parachute (not a substitute for encryption):** pair this apply with a rehearsed Porteus/Ventoy recovery path — **Contract 002 D1** [`c002/01-window-recovery.md`](../c002/01-window-recovery.md) (implements D6 pitch **idea 10**). Recovery media is the parachute; LUKS is the harness. Do not treat idea 10 as optional comfort after a failed apply — rehearse **before** step 5 / §4 if the stick is not already proven once.
 
 ---
 
@@ -51,7 +51,7 @@
 - [ ] Copy window flake pin + lock to an **offline** medium Court controls (USB that does **not** travel in the same bag as the Chromebook — GUESS: matches D4 #9 threat note).
 - [ ] Record `wg show` **public** peer lines / Court peer inventory pointers (pubs + endpoints only). Private key files: Court backs them up under Court’s existing secret custody — **do not paste key material into this runbook or the flake**.
 - [ ] `lsblk -o NAME,SIZE,TYPE,MOUNTPOINTS,FSTYPE` and `ls -l /dev/disk/by-id/` captured to the backup medium (needed to fill `disko.nix` by-id).
-- [ ] Confirm Porteus/Ventoy (idea 10) stick is bootable on **this** Chromebook once (COURT rehearsal). If not rehearsed, **stop** and do idea-10 dry-run first (GUESS: botched 28.5 GB apply without USB recovery costs a travel week — D6 pitch).
+- [ ] Confirm Porteus/Ventoy stick is bootable on **this** Chromebook once (COURT rehearsal per [`c002/01-window-recovery.md`](../c002/01-window-recovery.md)). If not rehearsed, **stop** and finish Contract 002 D1 dry-run first (GUESS: botched 28.5 GB apply without USB recovery costs a travel week — D6 pitch).
 - [ ] Free-space target after backup staging: GUESS **≥4–6 GB free** before format (D4 #5 band); measure with `df -h` on live root and installer environment.
 
 ### 1.3 Secrets policy
@@ -171,7 +171,7 @@ Store offline. Not in git (`d2/REINSTALL.md` §5).
 
 | Symptom | First moves |
 |---------|-------------|
-| Passphrase rejected / no cryptroot | Boot Porteus/Ventoy (idea 10). Confirm you are on the intended by-id disk. Do **not** run disko again until Court is sure of the target. |
+| Passphrase rejected / no cryptroot | Boot Porteus/Ventoy ([`c002/01-window-recovery.md`](../c002/01-window-recovery.md)). Confirm you are on the intended by-id disk. Do **not** run disko again until Court is sure of the target. |
 | Unlocks but emergency target / no `/` | From recovery: inspect btrfs subvols; confirm disko names `cryptroot` / subvol mountpoints match `d2/disko.nix`. |
 | Boots but no mesh | Treat as D3/ops — disk encryption is not the WireGuard config. Fix peers/endpoints; do not re-format. |
 | ESP full / cannot add generation | From recovery or prior generation: lower `configurationLimit` or free `/boot`; ESP is 512 MiB by design. |
@@ -187,7 +187,7 @@ Store offline. Not in git (`d2/REINSTALL.md` §5).
 - [ ] btrfs subvols mounted as in `d2/disko.nix`; ESP mounted at `/boot`.
 - [ ] Mesh rejoined; Court-critical remote path verified.
 - [ ] Recovery key stored offline; no secrets added to git.
-- [ ] Porteus/Ventoy still boots (parachute intact).
+- [ ] Porteus/Ventoy still boots (parachute intact — [`c002/01-window-recovery.md`](../c002/01-window-recovery.md)).
 - [ ] Explicit non-claim: **TPM unlock is not part of the trust story** while PCRs read zero.
 
 ---

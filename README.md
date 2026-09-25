@@ -34,6 +34,7 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 | **D6.2** | Landed (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) fan-in oneshot/timer — feeds existing dead-man; no `Persistent=true` |
 | **D6.3** | Scaffold (eval check) | [`d6/03-env-pin.md`](./d6/03-env-pin.md) + [`d6/env-pin/`](./d6/env-pin/) Court/Conscia env pin recipe — composes D5; weights/secrets out; Court inventory later |
 | **D6.4** | Landed (module + checks) | [`d6/04-freshness-canary.md`](./d6/04-freshness-canary.md) + [`d6/freshness/`](./d6/freshness/) Spock index/recall mtime canary → one-bell status file; no `Persistent=true` |
+| **C002.1** | Landed (runbook + check) | [`c002/`](./c002/) window Ventoy/Porteus recovery parachute (idea 10) — Court rehearses before LUKS; `checks…c002-stick-check` |
 
 ## Hard lines
 
@@ -43,5 +44,6 @@ No Court machine access from Nikola, no secrets in git, no phone-home, nothing t
 
 - `flake.nix` / `flake.lock` — inputs + home + packages + checks + D5 shell
 - `home.nix` / `modules/` — sandbox seat
-- `d2/` … `d6/` — contract deliverables
+- `d2/` … `d6/` — Contract 001 deliverables
+- `c002/` — Contract 002 (C002.1 recovery parachute first)
 - `notes/` — hop-surviving notes (no secrets)

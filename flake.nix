@@ -1,5 +1,5 @@
 {
-  description = "Nikola — Court contractor deliverables (D1 home + D2 LUKS + D3 WireGuard + D4 ideas + D1–D5.5 deliverables + D6 fleet pitch / D6.1–D6.4)";
+  description = "Nikola — Court contractor deliverables (D1–D5.5 + D6 fleet pitch / D6.1–D6.4 + Contract 002 C002.1 recovery)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
@@ -79,6 +79,8 @@
         d6-freshness-script = import ./d6/freshness/check-canary-script.nix { inherit pkgs; };
         # D6.3: court-env scaffold — instantiate shell name only (needs pkgsCuda like D5).
         d6-env-pin-eval = import ./d6/env-pin/eval-env-pin.nix { pkgs = pkgsCuda; };
+        # C002.1: Ventoy/Porteus stick presence check (pure script; no QEMU).
+        c002-stick-check = import ./c002/check-stick-nix.nix { inherit pkgs; };
       };
 
       devShells.${system} = {
