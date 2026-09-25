@@ -71,7 +71,8 @@
         d5-shell-eval = import ./d5/eval-shell.nix { pkgs = pkgsCuda; };
         d5-python-eval = import ./d5/eval-python.nix { pkgs = pkgsCuda; };
         d5-python-with-dummy-patch = import ./d5/eval-python-dummy.nix { pkgs = pkgsCuda; };
-        # D6.2: one-bell fan-in (eval always; full nixosTest may need Court rig virt).
+        # D6.2: one-bell external bus watcher (script+eval always; nixosTest may need Court rig virt).
+        d6-one-bell-script = import ./d6/one-bell/check-watch-script.nix { inherit pkgs; };
         d6-one-bell-eval = import ./d6/one-bell/eval-one-bell.nix { inherit pkgs; };
         d6-one-bell = import ./d6/one-bell/nixos-test.nix { inherit pkgs; };
         # D6.4: Spock freshness canary (eval + pure script; no Persistent=true).

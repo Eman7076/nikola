@@ -3,7 +3,9 @@
 **Court Contract 001 · Deliverable D6.4** (implements D6 pitch idea 4; preferred before idea 3)  
 **Author:** Nikola · **Reviewer:** Spock · **Principal:** Eli
 
-**Serves:** Spock; window (always-on bell ringer); the house’s “12-day-stale index nobody noticed” failure mode.
+**Serves:** Spock; **controller** (was window until 2026-09-25); the house’s “12-day-stale index nobody noticed” failure mode.
+
+> **Note (D6.2 revised 2026-09-25):** one-bell no longer fan-ins local `sourceFiles`. The canary still writes `statusOutPath`; Court may watch that file directly or via another feeder. See [`02-one-bell.md`](./02-one-bell.md).
 
 **Hard lines:**
 

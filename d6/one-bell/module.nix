@@ -1,11 +1,15 @@
-# D6.2 — Court one-bell NixOS module
+# D6.2 — Court one-bell NixOS module (revised 2026-09-25)
 # Author: Nikola (Court Contract 001)
 #
-# Fan-in of Court-configured source *files* into one append-only stream.
-# Feeds the existing sentinel/dead-man — does NOT install a second watchdog daemon
-# or any alert sink. No Persistent=true on timer or service (Eli constraint).
+# External bus heartbeat watcher on **controller** (was "window" until 2026-09-25).
+# Polls a Court-supplied heartbeatCommand that prints the rig feeder heartbeat JSON.
+# Change-only local log. Optional alertCommand hook (Court owns the alert; no tokens here).
 #
-# Court points the dead-man at court.oneBell.streamPath (see d6/02-one-bell.md).
+# Old local file fan-in is superseded (see archive/fan-in.sh.superseded-2026-09-25):
+# the one bus lives on the rig; this is the watcher-of-the-watcher from OUTSIDE.
+#
+# Eli constraint: never Persistent=true on timer or service.
+# Nikola proposes only — does not SSH/operate controller, conduit, or rig.
 
 {
   config,
@@ -22,86 +26,131 @@ let
     types
     ;
 
-  fanIn = pkgs.writeShellApplication {
-    name = "court-one-bell-fan-in";
+  watch = pkgs.writeShellApplication {
+    name = "court-one-bell-watch";
     runtimeInputs = with pkgs; [
       coreutils
       gnused
+      gnugrep
       gawk
+      jq
+      bash
     ];
     # Strip the shebang from the checked-in script; writeShellApplication adds its own.
-    text = lib.replaceStrings [ "#!/usr/bin/env bash\n" ] [ "" ] (builtins.readFile ./fan-in.sh);
+    text = lib.replaceStrings [ "#!/usr/bin/env bash\n" ] [ "" ] (builtins.readFile ./watch.sh);
   };
-
-  sourcesFile = pkgs.writeText "court-one-bell-sources.txt" (
-    lib.concatMapStrings (p: p + "\n") cfg.sourceFiles
-  );
 in
 {
   options.court.oneBell = {
-    enable = mkEnableOption "Court one-bell fan-in (oneshot + timer → stream for existing dead-man)";
+    enable = mkEnableOption "Court one-bell external bus heartbeat watcher (oneshot + timer on controller)";
 
-    sourceFiles = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      example = [
-        "/var/lib/court-signals/mesh.status"
-        "/var/lib/court-signals/disk.free"
-      ];
+    heartbeatCommand = mkOption {
+      type = types.str;
+      default = "";
+      example = "ssh court-rig cat /var/lib/court-bus/heartbeat.json";
       description = ''
-        Absolute paths of source *files* Court maintains. Each file contributes one
-        status line per tick. Missing/unreadable → MISSING line in the stream
-        (fail-closed, measurable). No silent skip.
+        Shell command that prints the feeder heartbeat JSON on stdout.
+        Court supplies the real string (ssh or other). This module invents no
+        host, key, or path. Required (non-empty) when enable = true.
       '';
     };
 
-    streamPath = mkOption {
-      type = types.str;
-      default = "/var/lib/court-one-bell/bell.log";
-      description = "Append-only stream path the existing dead-man/sentinel should watch.";
+    staleAfterSec = mkOption {
+      type = types.ints.positive;
+      # GUESS: Spock said “say 5 min” for noticing feeder stale from outside.
+      default = 300;
+      description = ''
+        Seconds after feeder_last_run before overall = STALE.
+        GUESS default 300 (Spock: “say 5 min”). Court may retune.
+      '';
+    };
+
+    sourceFailingRuns = mkOption {
+      type = types.ints.positive;
+      # GUESS: align with feeder’s three-run HEALTH before treating a source as failing.
+      default = 3;
+      description = ''
+        A source is failing when status == "failing" AND fails >= this threshold.
+        GUESS default 3 (align feeder HEALTH). Court may retune.
+      '';
     };
 
     interval = mkOption {
       type = types.str;
-      default = "5min";
+      # GUESS: Spock said every ~2 min.
+      default = "2min";
       example = "2min";
       description = ''
-        Duration for OnUnitActiveSec (re-arm after each oneshot). Paired with
-        OnBootSec so the first tick is soon after boot. Persistent=true is never set.
+        Duration for OnUnitActiveSec (re-arm after each oneshot).
+        GUESS default 2min (Spock: every ~2 min). Persistent=true is never set.
       '';
     };
 
     onBootSec = mkOption {
       type = types.str;
-      default = "1min";
-      description = "Delay after boot before the first oneshot (OnBootSec).";
+      # GUESS: first tick soon after boot without Persistent catch-up.
+      default = "30s";
+      description = ''
+        Delay after boot before the first oneshot (OnBootSec).
+        GUESS default 30s.
+      '';
     };
 
-    debounceSec = mkOption {
-      type = types.ints.unsigned;
-      default = 0;
+    logPath = mkOption {
+      type = types.str;
+      default = "/var/lib/court-one-bell/watch.log";
+      description = "Local change-only log on controller.";
+    };
+
+    statePath = mkOption {
+      type = types.str;
+      default = "/var/lib/court-one-bell/watch.state";
+      description = "Small state file for last emitted conditions (change detection).";
+    };
+
+    alertCommand = mkOption {
+      type = types.str;
+      default = "";
       description = ''
-        If >0 and the OK/MISSING core payload is identical to the last block, skip
-        appending when the stream mtime is newer than this many seconds. 0 = always append.
+        Optional hook. If non-empty, run once per emitted change with env
+        COURT_ONE_BELL_EVENT set to the log line. Empty = log only.
+        Nikola does not write the alert sink; no tokens in this flake.
       '';
     };
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.heartbeatCommand != "";
+        message = "court.oneBell.heartbeatCommand must be a non-empty shell command when court.oneBell.enable = true (Court supplies; module invents no host/key/path).";
+      }
+    ];
+
     systemd.tmpfiles.rules = [
       "d /var/lib/court-one-bell 0750 root root -"
     ];
 
     systemd.services.court-one-bell = {
-      description = "Court one-bell fan-in (feed existing dead-man; not a second watchdog)";
+      description = "Court one-bell bus heartbeat watcher (controller watches rig feeder from outside)";
+      path = [
+        pkgs.bash
+        pkgs.coreutils
+        pkgs.jq
+      ];
+      # Use environment attrset (not Environment= list) so Court commands with
+      # spaces (e.g. ssh … cat …) are escaped correctly by the NixOS systemd module.
+      environment = {
+        COURT_ONE_BELL_HEARTBEAT_CMD = cfg.heartbeatCommand;
+        COURT_ONE_BELL_STALE_AFTER_SEC = toString cfg.staleAfterSec;
+        COURT_ONE_BELL_SOURCE_FAILING_RUNS = toString cfg.sourceFailingRuns;
+        COURT_ONE_BELL_LOG_PATH = cfg.logPath;
+        COURT_ONE_BELL_STATE_PATH = cfg.statePath;
+        COURT_ONE_BELL_ALERT_CMD = cfg.alertCommand;
+      };
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${fanIn}/bin/court-one-bell-fan-in";
-        Environment = [
-          "COURT_ONE_BELL_STREAM=${cfg.streamPath}"
-          "COURT_ONE_BELL_DEBOUNCE_SEC=${toString cfg.debounceSec}"
-          "COURT_ONE_BELL_SOURCES_FILE=${sourcesFile}"
-        ];
+        ExecStart = "${watch}/bin/court-one-bell-watch";
         # Eli constraint: never Persistent=true (that knob is on the *timer*; still
         # documented here so reviewers grepping units see the intent).
       };
@@ -117,9 +166,9 @@ in
         # Persistent deliberately omitted. Never set Persistent = true.
         #
         # Why OnBootSec + OnUnitActiveSec (not OnCalendar with Persistent=true):
-        # after suspend/AFK we do *not* want a burst of catch-up bells. The existing
-        # dead-man should notice stream staleness (mtime / last END age) instead of
-        # consuming a Persistent backlog. Eli: no Persistent=true ever on these units.
+        # after suspend/AFK we do *not* want a burst of catch-up runs. Staleness
+        # is measured from feeder_last_run in the heartbeat JSON, not from a
+        # Persistent backlog. Eli: no Persistent=true ever on these units.
       };
     };
   };

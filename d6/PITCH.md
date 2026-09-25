@@ -39,17 +39,17 @@ Contract 001 is **accepted through D5.4**; **D5.5** (Arch NVIDIA driver shim) is
 
 ---
 
-## 2. One-bell watcher on the conductor (Eli’s shape)
+## 2. One-bell watcher on the conductor (Eli’s shape) — **revised 2026-09-25**
 
-**Serves:** window; Spock’s ark / existing sentinel·dead-man; Eli’s “one stream” ask.
+**Serves:** **controller** (was window until 2026-09-25); Spock’s ark; Eli’s “watcher of the watcher” ask.
 
-**Makes true that is false today:** Several health sources (mesh handshake age, free eMMC, last organ-canary result, recall-index mtime — Court picks the set) land in **one** append-only stream a human or the existing dead-man can tail — without a second watchdog daemon and **without `Persistent=true`** on any unit (Eli’s constraint; fact of the ask).
+**Makes true that is false today (revised):** The rig’s one-bus feeder heartbeat is watched **from outside** on controller (oneshot + timer, **no `Persistent=true`**). Change-only log when the feeder goes stale / unreachable or a source fails — so if the rig (and Spock’s on-rig tail) dies, controller still notices. Old local file fan-in is superseded (bus lives on the rig).
 
-**Cost (guess):** Nikola **6–10 h** (systemd oneshot/timer units, fan-in script, flake module stub, docs: what is a “source”, debounce rules, fail-closed when a source file is missing). Court **2–4 h** to point real paths and confirm the dead-man consumes the bell file/socket Court already trusts.
+**Cost (guess):** Nikola **6–10 h** (original) + revise pass (watch script, module options, pure tests). Court **1–3 h** to supply `heartbeatCommand` (and optional `alertCommand`) and confirm change lines on controller.
 
-**Prove on VM vs rig/window:** VM can nixosTest a toy fan-in (fake source files → one stream, timer fires, no Persistent). Real source paths, alert routing, and “re-armed after suspend” are **window + Court**.
+**Prove on VM vs controller/rig:** VM runs pure script + eval (fake heartbeatCommand). Real ssh/reachability and alert hook are **controller + Court**. Nikola does not operate those hosts.
 
-**Why not:** If Court treats this as a second brain instead of a feeder for the existing dead-man, you get the double-watchdog mess Spock already flagged on D4 #2.
+**Why not:** If Court skips the outside watch, a dead rig takes Spock’s session watch with it — silent house.
 
 ---
 

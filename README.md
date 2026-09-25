@@ -31,7 +31,7 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 | **D5.6** | This cut | [`d5/`](./d5/) bump to JamePeng **0.4.0** (`5c83af7`); shim unchanged; patch contract **two** (clean_continuation upstream); GPU/MTP = Court re-smoke |
 | **D6** | Pitch on `main` | [`d6/PITCH.md`](./d6/PITCH.md) ten ranked **fleet** ideas — reproducible / measurable bias |
 | **D6.1** | Landed (Court apply) | [`d6/01-window-luks-apply.md`](./d6/01-window-luks-apply.md) controller LUKS migration runbook (was **window** until 2026-09-25) — **Nikola does not operate controller** |
-| **D6.2** | Landed (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) fan-in oneshot/timer — feeds existing dead-man; no `Persistent=true` |
+| **D6.2** | Revised 2026-09-25 (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) external bus heartbeat watcher on **controller** (watcher-of-watcher); no `Persistent=true` |
 | **D6.3** | Scaffold (eval check) | [`d6/03-env-pin.md`](./d6/03-env-pin.md) + [`d6/env-pin/`](./d6/env-pin/) Court/Conscia env pin recipe — composes D5; weights/secrets out; Court inventory later |
 | **D6.4** | Landed (module + checks) | [`d6/04-freshness-canary.md`](./d6/04-freshness-canary.md) + [`d6/freshness/`](./d6/freshness/) Spock index/recall mtime canary → one-bell status file; no `Persistent=true` |
 | **C002.1** | Corrected (Spock 2026-09-25) | [`c002/`](./c002/) controller Ventoy/Porteus recovery parachute (idea 10; was window) — additive stick check + fleet-flake tarball default; Court rehearses before LUKS |

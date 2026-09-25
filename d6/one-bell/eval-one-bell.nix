@@ -1,12 +1,8 @@
-# Cheap smoke: evaluate one-bell module + assert no Persistent=true in timer config.
+# Cheap smoke: evaluate revised one-bell module + assert no Persistent=true.
 # Wired as checks.x86_64-linux.d6-one-bell-eval
 # No QEMU — safe on Nikola’s nested-KVM-hostile VM.
 { pkgs }:
 let
-  sources = [
-    "/var/lib/court-one-bell-test/present.status"
-    "/var/lib/court-one-bell-test/absent.status"
-  ];
   evaluated = pkgs.nixos {
     imports = [ ./module.nix ];
     boot.loader.systemd-boot.enable = true;
@@ -17,11 +13,16 @@ let
     };
     court.oneBell = {
       enable = true;
-      sourceFiles = sources;
-      streamPath = "/var/lib/court-one-bell/bell.log";
-      interval = "2min";
-      onBootSec = "5s";
-      debounceSec = 0;
+      # Fake Court-supplied command — module must not invent host/key/path.
+      heartbeatCommand = "cat /var/lib/court-one-bell-test/heartbeat.json";
+      # GUESS defaults exercised explicitly so eval pins the contract.
+      staleAfterSec = 300; # GUESS
+      sourceFailingRuns = 3; # GUESS
+      interval = "2min"; # GUESS
+      onBootSec = "30s"; # GUESS
+      logPath = "/var/lib/court-one-bell/watch.log";
+      statePath = "/var/lib/court-one-bell/watch.state";
+      alertCommand = "";
     };
     system.stateVersion = "25.05";
   };
@@ -32,7 +33,11 @@ let
     !(timerCfg ? Persistent)
     || (timerCfg.Persistent != true && timerCfg.Persistent != "true");
   typeOk = serviceCfg.Type == "oneshot";
+  intervalOk = timerCfg.OnUnitActiveSec == "2min";
+  bootOk = timerCfg.OnBootSec == "30s";
 in
 assert persistentOk;
 assert typeOk;
+assert intervalOk;
+assert bootOk;
 evaluated.toplevel
