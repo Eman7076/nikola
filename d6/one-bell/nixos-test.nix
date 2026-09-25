@@ -36,10 +36,13 @@ pkgs.nixosTest {
       court.oneBell = {
         enable = true;
         heartbeatCommand = "cat /var/lib/court-one-bell-test/heartbeat.json";
+        heartbeatTimeoutSec = 30; # GUESS
         staleAfterSec = 300; # GUESS
         sourceFailingRuns = 3; # GUESS
+        clockSkewSec = 60; # GUESS
         interval = "1h";
         onBootSec = "2s"; # GUESS-ish short for test boot; production default 30s
+        user = "court-one-bell";
         logPath = "/var/lib/court-one-bell/watch.log";
         statePath = "/var/lib/court-one-bell/watch.state";
         alertCommand = "";
@@ -49,6 +52,7 @@ pkgs.nixosTest {
         "d /var/lib/court-one-bell-test 0755 root root -"
         "C /var/lib/court-one-bell-test/heartbeat.json 0644 root root - ${hbFresh}"
         "C /var/lib/court-one-bell-test/hb-stale.json 0644 root root - ${hbStale}"
+        # Heartbeat fixtures are world-readable so dedicated user court-one-bell can cat them.
       ];
     };
 
@@ -70,6 +74,9 @@ pkgs.nixosTest {
     svc_text = machine.succeed("systemctl cat court-one-bell.service")
     assert not re.search(r"(?m)^Persistent=(true|yes)\\b", svc_text)
     assert "Type=oneshot" in svc_text
+    assert "User=court-one-bell" in svc_text
+    assert "TimeoutStartSec=45" in svc_text  # GUESS: heartbeatTimeoutSec(30) + 15
+
 
     # Tick 1: fresh → silent (no log lines / empty or absent log ok).
     machine.succeed("systemctl start court-one-bell.service")

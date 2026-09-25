@@ -1,0 +1,49 @@
+2026-09-25 15:21:39 CDT
+=== nix build d6-one-bell-script ===
+warning: Git tree '/workspace/nikola-d1' is dirty
+this derivation will be built:
+  /nix/store/fv26ml4hi84lsnrhayyaml7a8i70r6l8-d6-one-bell-watch-script.drv
+building '/nix/store/fv26ml4hi84lsnrhayyaml7a8i70r6l8-d6-one-bell-watch-script.drv'...
+d6-one-bell-watch-script> ok fresh stays silent (two ticks)
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER stale age=360s
+d6-one-bell-watch-script> ok stale once then silent
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER stale age=360s
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER fresh
+d6-one-bell-watch-script> ok recovery (stale→fresh) once
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: cmd_exit=1
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER fresh
+d6-one-bell-watch-script> ok unreachable once (+ recovery)
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell SOURCE igris-note failing fails=3
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell SOURCE igris-note ok
+d6-one-bell-watch-script> ok failing source once (+ recovery)
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: invalid_json
+d6-one-bell-watch-script> ok invalid JSON → unreachable
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: timeout
+d6-one-bell-watch-script> ok heartbeat timeout → one unreachable (timeout), script exits
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:44 court-one-bell CLOCK skew 86s
+d6-one-bell-watch-script> court-one-bell: 2026-09-25 20:21:45 court-one-bell CLOCK ok
+d6-one-bell-watch-script> ok clock skew enter/leave (change-only)
+d6-one-bell-watch-script> d6-one-bell watch script proof: all cases passed
+EXIT:0
+=== result ===
+ok fresh stays silent (two ticks)
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER stale age=360s
+ok stale once then silent
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER stale age=360s
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER fresh
+ok recovery (stale→fresh) once
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: cmd_exit=1
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER fresh
+ok unreachable once (+ recovery)
+court-one-bell: 2026-09-25 20:21:40 court-one-bell SOURCE igris-note failing fails=3
+court-one-bell: 2026-09-25 20:21:40 court-one-bell SOURCE igris-note ok
+ok failing source once (+ recovery)
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: invalid_json
+ok invalid JSON → unreachable
+court-one-bell: 2026-09-25 20:21:40 court-one-bell FEEDER unreachable: timeout
+ok heartbeat timeout → one unreachable (timeout), script exits
+court-one-bell: 2026-09-25 20:21:44 court-one-bell CLOCK skew 86s
+court-one-bell: 2026-09-25 20:21:45 court-one-bell CLOCK ok
+ok clock skew enter/leave (change-only)
+d6-one-bell watch script proof: all cases passed
+2026-09-25 15:21:45 CDT

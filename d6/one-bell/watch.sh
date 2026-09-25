@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# D6.2 — Court one-bell bus heartbeat watcher (revised 2026-09-25)
+# D6.2.1 — Court one-bell bus heartbeat watcher (revised 2026-09-25)
 # Author: Nikola (Court Contract 001)
 #
 # Watcher-of-the-watcher on **controller**: polls a Court-supplied heartbeatCommand
@@ -12,12 +12,15 @@
 #
 # Env (set by the systemd unit / NixOS module / tests):
 #   COURT_ONE_BELL_HEARTBEAT_CMD     — shell command printing heartbeat JSON (required)
+#   COURT_ONE_BELL_HEARTBEAT_TIMEOUT_SEC — GUESS default 30; coreutils timeout wrap
 #   COURT_ONE_BELL_STALE_AFTER_SEC   — GUESS default 300 (Spock: "say 5 min")
 #   COURT_ONE_BELL_SOURCE_FAILING_RUNS — GUESS default 3 (align feeder HEALTH)
+#   COURT_ONE_BELL_CLOCK_SKEW_SEC    — GUESS default 60; age < -this → CLOCK skew line
 #   COURT_ONE_BELL_LOG_PATH          — change-only log on controller
 #   COURT_ONE_BELL_STATE_PATH        — last emitted conditions (for change detect)
 #   COURT_ONE_BELL_ALERT_CMD         — optional; if non-empty, run once per change
 #                                      with COURT_ONE_BELL_EVENT set to the log line
+#                                      (also bounded by heartbeat timeout)
 #
 # Heartbeat JSON shape (FACT from Spock 2026-09-25):
 #   {"feeder_last_run": <unix float>,
@@ -30,14 +33,22 @@
 set -euo pipefail
 
 heartbeat_cmd="${COURT_ONE_BELL_HEARTBEAT_CMD:?COURT_ONE_BELL_HEARTBEAT_CMD is required}"
+# GUESS: Spock D6.2 review — hung ssh/disk must not keep oneshot activating forever.
+heartbeat_timeout_sec="${COURT_ONE_BELL_HEARTBEAT_TIMEOUT_SEC:-30}"
 # GUESS: Spock said “say 5 min” for feeder stale from outside.
 stale_after_sec="${COURT_ONE_BELL_STALE_AFTER_SEC:-300}"
 # GUESS: align with feeder’s three-run HEALTH before treating a source as failing.
 source_failing_runs="${COURT_ONE_BELL_SOURCE_FAILING_RUNS:-3}"
+# GUESS: age < -60s → CLOCK skew change-only line (instead of silent clamp to 0).
+clock_skew_sec="${COURT_ONE_BELL_CLOCK_SKEW_SEC:-60}"
 log_path="${COURT_ONE_BELL_LOG_PATH:?COURT_ONE_BELL_LOG_PATH is required}"
 state_path="${COURT_ONE_BELL_STATE_PATH:?COURT_ONE_BELL_STATE_PATH is required}"
 alert_cmd="${COURT_ONE_BELL_ALERT_CMD:-}"
 
+if ! [[ "$heartbeat_timeout_sec" =~ ^[0-9]+$ ]] || ((heartbeat_timeout_sec < 1)); then
+  echo "court-one-bell: COURT_ONE_BELL_HEARTBEAT_TIMEOUT_SEC must be a positive integer" >&2
+  exit 2
+fi
 if ! [[ "$stale_after_sec" =~ ^[0-9]+$ ]] || ((stale_after_sec < 1)); then
   echo "court-one-bell: COURT_ONE_BELL_STALE_AFTER_SEC must be a positive integer" >&2
   exit 2
@@ -46,31 +57,41 @@ if ! [[ "$source_failing_runs" =~ ^[0-9]+$ ]] || ((source_failing_runs < 1)); th
   echo "court-one-bell: COURT_ONE_BELL_SOURCE_FAILING_RUNS must be a positive integer" >&2
   exit 2
 fi
+if ! [[ "$clock_skew_sec" =~ ^[0-9]+$ ]] || ((clock_skew_sec < 1)); then
+  echo "court-one-bell: COURT_ONE_BELL_CLOCK_SKEW_SEC must be a positive integer" >&2
+  exit 2
+fi
 
 mkdir -p "$(dirname "$log_path")" "$(dirname "$state_path")"
 
 now="$(date +%s)"
 ts="$(date +"%Y-%m-%d %H:%M:%S")"
 
-# --- fetch heartbeat ---
+# --- fetch heartbeat (bounded by coreutils timeout; exit 124 → UNREACHABLE timeout) ---
 hb_tmp="$(mktemp)"
 hb_err="$(mktemp)"
 trap 'rm -f "$hb_tmp" "$hb_err"' EXIT
 
 overall="UNREACHABLE"
 overall_detail="unknown"
+clock_skew=0
+skew_secs=0
 declare -A src_status=()
 
 set +e
 # shellcheck disable=SC2086
-bash -c "$heartbeat_cmd" >"$hb_tmp" 2>"$hb_err"
+timeout "$heartbeat_timeout_sec" bash -c "$heartbeat_cmd" >"$hb_tmp" 2>"$hb_err"
 hb_rc=$?
 set -e
 
 hb_body="$(cat "$hb_tmp" 2>/dev/null || true)"
 hb_err_body="$(tr '\n' ' ' <"$hb_err" | sed 's/[[:space:]]\+/ /g; s/^[[:space:]]*//; s/[[:space:]]*$//')"
 
-if ((hb_rc != 0)); then
+if ((hb_rc == 124)); then
+  # GNU coreutils timeout: 124 = command timed out.
+  overall="UNREACHABLE"
+  overall_detail="timeout"
+elif ((hb_rc != 0)); then
   overall="UNREACHABLE"
   overall_detail="cmd_exit=${hb_rc}${hb_err_body:+ msg=${hb_err_body}}"
 elif [[ -z "${hb_body//[[:space:]]/}" ]]; then
@@ -93,6 +114,11 @@ else
     feeder_sec="${feeder_last_run%%.*}"
     age=$((now - feeder_sec))
     if ((age < 0)); then
+      # GUESS: if age < -clock_skew_sec, emit change-only CLOCK skew (do not silent-clamp only).
+      if ((age < -clock_skew_sec)); then
+        clock_skew=1
+        skew_secs=$((-age))
+      fi
       age=0
     fi
     if ((age > stale_after_sec)); then
@@ -104,6 +130,7 @@ else
     fi
 
     # Per-source failing: status=="failing" AND fails >= sourceFailingRuns (GUESS).
+    # Double-gated with feeder (status failing AND fails >= N) — Spock: leave as-is.
     while IFS=$'\t' read -r name status fails; do
       [[ -z "$name" || "$name" == "null" ]] && continue
       fails_n=0
@@ -124,12 +151,15 @@ fi
 
 # --- load previous state ---
 prev_overall=""
+prev_clock_skew=0
 declare -A prev_src=()
 if [[ -f "$state_path" ]]; then
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ -z "$line" || "$line" =~ ^# ]] && continue
     if [[ "$line" =~ ^overall=(.*)$ ]]; then
       prev_overall="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^clock_skew=(.*)$ ]]; then
+      prev_clock_skew="${BASH_REMATCH[1]}"
     elif [[ "$line" =~ ^source:([^=]+)=(.*)$ ]]; then
       prev_src["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
     fi
@@ -143,7 +173,8 @@ emit() {
   echo "court-one-bell: $line"
   if [[ -n "$alert_cmd" ]]; then
     set +e
-    COURT_ONE_BELL_EVENT="$line" bash -c "$alert_cmd"
+    # Same timeout bound so a hung alert cannot freeze the watcher (Spock D6.2.1).
+    timeout "$heartbeat_timeout_sec" env COURT_ONE_BELL_EVENT="$line" bash -c "$alert_cmd"
     set -e
   fi
 }
@@ -167,6 +198,16 @@ if [[ "$overall" != "$prev_overall" ]]; then
   esac
 fi
 # Same overall → silent (stale stays stale, fresh stays fresh, unreachable stays).
+
+# --- clock skew change-only (GUESS threshold clock_skew_sec) ---
+# Only meaningful when heartbeat was parseable enough to compute age.
+if [[ "$overall" != "UNREACHABLE" ]]; then
+  if ((clock_skew == 1)) && ((prev_clock_skew != 1)); then
+    emit "CLOCK skew ${skew_secs}s"
+  elif ((clock_skew == 0)) && ((prev_clock_skew == 1)); then
+    emit "CLOCK ok"
+  fi
+fi
 
 # --- source changes (only when heartbeat was parseable; skip noise on UNREACHABLE) ---
 if [[ "$overall" != "UNREACHABLE" ]]; then
@@ -200,6 +241,7 @@ fi
 state_tmp="$(mktemp "${state_path}.XXXXXX")"
 {
   printf 'overall=%s\n' "$overall"
+  printf 'clock_skew=%s\n' "$clock_skew"
   # Stable key order for nicer diffs.
   if ((${#src_status[@]} > 0)); then
     for name in $(printf '%s\n' "${!src_status[@]}" | sort); do

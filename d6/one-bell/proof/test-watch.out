@@ -1,0 +1,20 @@
+ok fresh stays silent (two ticks)
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER stale age=360s
+ok stale once then silent
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER stale age=360s
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER fresh
+ok recovery (stale→fresh) once
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER unreachable: cmd_exit=1
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER fresh
+ok unreachable once (+ recovery)
+court-one-bell: 2026-09-25 15:21:21 court-one-bell SOURCE igris-note failing fails=3
+court-one-bell: 2026-09-25 15:21:21 court-one-bell SOURCE igris-note ok
+ok failing source once (+ recovery)
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER unreachable: invalid_json
+ok invalid JSON → unreachable
+court-one-bell: 2026-09-25 15:21:21 court-one-bell FEEDER unreachable: timeout
+ok heartbeat timeout → one unreachable (timeout), script exits
+court-one-bell: 2026-09-25 15:21:25 court-one-bell CLOCK skew 86s
+court-one-bell: 2026-09-25 15:21:25 court-one-bell CLOCK ok
+ok clock skew enter/leave (change-only)
+d6-one-bell watch script proof: all cases passed

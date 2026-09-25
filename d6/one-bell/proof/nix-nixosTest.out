@@ -1,0 +1,76 @@
+2026-09-25 15:22:00 CDT
+=== nix build d6-one-bell (nixosTest) with 150s wall timeout ===
+warning: Git tree '/workspace/nikola-d1' is dirty
+these 21 derivations will be built:
+  /nix/store/621rj84lhv4islcxwf8mpl8kwkpi9940-users-groups.json.drv
+  /nix/store/r2pjrpicx0klw3a27nwidmzz6icbg20y-system-path.drv
+  /nix/store/6y3nnacz87n8v3gvqjaqa5vlzd1hn4i4-dbus-1.drv
+  /nix/store/3p7i0n108vy1r73pv3fakvv2sly8xjdz-hb-fresh.json.drv
+  /nix/store/hzmyd2psi9g1fk3vcvic6mdm6xj5qccq-hb-stale.json.drv
+  /nix/store/pj30zda9fah10mh4fz5y4yzm4ckhs4hn-nixos-tmpfiles.d.drv
+  /nix/store/cchjd0z4xahijh908siqljasmmgx5day-tmpfiles.d.drv
+  /nix/store/w90vfh3fs1j06xrlkb3qmnpv79jjrj6w-X-Restart-Triggers-dbus.drv
+  /nix/store/db3s043idal00sailz21jcvbf4s5x92n-unit-dbus.service.drv
+  /nix/store/nnzp04z44ah3jqm7v33qyb9vb5kjviz2-user-units.drv
+  /nix/store/40z3qjbsck14jr8qrpwa5dangf76lfvs-X-Restart-Triggers-systemd-tmpfiles-resetup.drv
+  /nix/store/1nm5r7zz1a2nbpnx75nbvvjy81vsrfnh-unit-systemd-tmpfiles-resetup.service.drv
+  /nix/store/d2kmdchcbsghf41q456801snwm811mry-unit-dbus.service.drv
+  /nix/store/x4g4wfyxkzacn3k5i8hnsac6kahbcy2f-system-units.drv
+  /nix/store/h1p3zlvsg0aivzdkv26rk81qjkqqh30s-etc.drv
+  /nix/store/cfblb4524qixkwfcx3p6yw9h9364vk84-nixos-system-machine-test.drv
+  /nix/store/8hck812ngfvvkgivwnvjzhab5scmck7x-closure-info.drv
+  /nix/store/cspx7iykmdgrara8ms9wbbnk21rfqhcv-run-nixos-vm.drv
+  /nix/store/fnql2zrn3y49f42qfz8grpnmqsajmi21-nixos-vm.drv
+  /nix/store/vpqmwh4kzn2z3ii1x145fs2k5ripy74n-nixos-test-driver-nikola-d6-one-bell.drv
+  /nix/store/15fffykm0l80y2yii9xx917igd6sq9cj-vm-test-run-nikola-d6-one-bell.drv
+building '/nix/store/r2pjrpicx0klw3a27nwidmzz6icbg20y-system-path.drv'...
+system-path> created 6693 symlinks in user environment
+building '/nix/store/hzmyd2psi9g1fk3vcvic6mdm6xj5qccq-hb-stale.json.drv'...
+building '/nix/store/3p7i0n108vy1r73pv3fakvv2sly8xjdz-hb-fresh.json.drv'...
+building '/nix/store/6y3nnacz87n8v3gvqjaqa5vlzd1hn4i4-dbus-1.drv'...
+building '/nix/store/pj30zda9fah10mh4fz5y4yzm4ckhs4hn-nixos-tmpfiles.d.drv'...
+building '/nix/store/w90vfh3fs1j06xrlkb3qmnpv79jjrj6w-X-Restart-Triggers-dbus.drv'...
+building '/nix/store/cchjd0z4xahijh908siqljasmmgx5day-tmpfiles.d.drv'...
+building '/nix/store/d2kmdchcbsghf41q456801snwm811mry-unit-dbus.service.drv'...
+building '/nix/store/db3s043idal00sailz21jcvbf4s5x92n-unit-dbus.service.drv'...
+building '/nix/store/40z3qjbsck14jr8qrpwa5dangf76lfvs-X-Restart-Triggers-systemd-tmpfiles-resetup.drv'...
+building '/nix/store/nnzp04z44ah3jqm7v33qyb9vb5kjviz2-user-units.drv'...
+building '/nix/store/1nm5r7zz1a2nbpnx75nbvvjy81vsrfnh-unit-systemd-tmpfiles-resetup.service.drv'...
+building '/nix/store/621rj84lhv4islcxwf8mpl8kwkpi9940-users-groups.json.drv'...
+building '/nix/store/x4g4wfyxkzacn3k5i8hnsac6kahbcy2f-system-units.drv'...
+building '/nix/store/h1p3zlvsg0aivzdkv26rk81qjkqqh30s-etc.drv'...
+building '/nix/store/cfblb4524qixkwfcx3p6yw9h9364vk84-nixos-system-machine-test.drv'...
+building '/nix/store/8hck812ngfvvkgivwnvjzhab5scmck7x-closure-info.drv'...
+closure-info> structuredAttrs is enabled
+building '/nix/store/cspx7iykmdgrara8ms9wbbnk21rfqhcv-run-nixos-vm.drv'...
+building '/nix/store/fnql2zrn3y49f42qfz8grpnmqsajmi21-nixos-vm.drv'...
+building '/nix/store/vpqmwh4kzn2z3ii1x145fs2k5ripy74n-nixos-test-driver-nikola-d6-one-bell.drv'...
+nixos-test-driver-nikola-d6-one-bell> Running type check (enable/disable: config.skipTypeCheck)
+nixos-test-driver-nikola-d6-one-bell> See https://nixos.org/manual/nixos/stable/#test-opt-skipTypeCheck
+nixos-test-driver-nikola-d6-one-bell> Success: no issues found in 1 source file
+nixos-test-driver-nikola-d6-one-bell> additionally exposed symbols:
+nixos-test-driver-nikola-d6-one-bell>     ,
+nixos-test-driver-nikola-d6-one-bell>     ,
+nixos-test-driver-nikola-d6-one-bell>     start_all, test_script, machines, vlans, driver, log, os, create_machine, subtest, run_tests, join_all, retry, serial_stdout_off, serial_stdout_on, polling_condition, Machine, t
+nixos-test-driver-nikola-d6-one-bell> Linting test script (enable/disable: config.skipLint)
+nixos-test-driver-nikola-d6-one-bell> See https://nixos.org/manual/nixos/stable/#test-opt-skipLint
+building '/nix/store/15fffykm0l80y2yii9xx917igd6sq9cj-vm-test-run-nikola-d6-one-bell.drv'...
+vm-test-run-nikola-d6-one-bell> Machine state will be reset. To keep it, pass --keep-vm-state
+vm-test-run-nikola-d6-one-bell> start all VLans
+vm-test-run-nikola-d6-one-bell> start vlan
+vm-test-run-nikola-d6-one-bell> running vlan (pid 7; ctl /build/vde1.ctl)
+vm-test-run-nikola-d6-one-bell> (finished: start all VLans, in 0.00 seconds)
+vm-test-run-nikola-d6-one-bell> Test will time out and terminate in 3600 seconds
+vm-test-run-nikola-d6-one-bell> run the VM test script
+vm-test-run-nikola-d6-one-bell> additionally exposed symbols:
+vm-test-run-nikola-d6-one-bell>     machine,
+vm-test-run-nikola-d6-one-bell>     vlan1,
+vm-test-run-nikola-d6-one-bell>     start_all, test_script, machines, vlans, driver, log, os, create_machine, subtest, run_tests, join_all, retry, serial_stdout_off, serial_stdout_on, polling_condition, Machine, t
+vm-test-run-nikola-d6-one-bell> machine: waiting for unit multi-user.target
+vm-test-run-nikola-d6-one-bell> machine: waiting for the VM to finish booting
+vm-test-run-nikola-d6-one-bell> machine: starting vm
+vm-test-run-nikola-d6-one-bell> mke2fs 1.47.2 (1-Jan-2025)
+shutting down[Kerror: interrupted by the user
+EXIT:124
+2026-09-25 15:24:30 CDT
+FACT: nixosTest did not complete within 150s wall clock (likely nested KVM hang or slow VM start). Killed; do not wait 3600s.
