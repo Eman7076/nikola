@@ -9,6 +9,11 @@
 # measured: nix python then loads Arch glibc and dies on GLIBC_PRIVATE).
 #
 # Patterns below = Court report. Untested on Nikola's VM (no NVIDIA).
+#
+# D5.5.1 (Court 2026-09-24): on Arch /usr/lib64 often resolves to the same
+# directory as /usr/lib, so iterating both double-counted ln attempts (24
+# printed, 12 files on disk). Deduplicate search roots by realpath; report
+# the final link count in the shim directory.
 
 court_cuda_driver_shim_setup() {
   if [ -d /run/opengl-driver/lib ]; then
@@ -33,7 +38,29 @@ court_cuda_driver_shim_setup() {
     return 1
   fi
 
-  _court_linked=0
+  # Build a unique list of search roots (Arch: /usr/lib64 -> /usr/lib).
+  _court_dirs=""
+  for _court_cand in /usr/lib /usr/lib64; do
+    [ -d "$_court_cand" ] || continue
+    _court_real=$(realpath "$_court_cand" 2>/dev/null || echo "$_court_cand")
+    _court_seen=0
+    for _court_existing in $_court_dirs; do
+      if [ "$_court_existing" = "$_court_real" ]; then
+        _court_seen=1
+        break
+      fi
+    done
+    if [ "$_court_seen" -eq 0 ]; then
+      _court_dirs="${_court_dirs} ${_court_real}"
+    fi
+  done
+  _court_dirs=$(echo $_court_dirs | sed 's/^ *//')
+
+  if [ -z "$_court_dirs" ]; then
+    echo "court-cuda-shim: WARNING: no usable /usr/lib{,64} after realpath; GPU offload may stay False" >&2
+    return 1
+  fi
+
   # Court-measured set only — never glob the whole /usr/lib tree into the shim.
   for _court_pat in \
     'libcuda.so*' \
@@ -41,15 +68,16 @@ court_cuda_driver_shim_setup() {
     'libnvidia-ml.so*' \
     'libnvidia-nvvm.so*'
   do
-    for _court_dir in /usr/lib /usr/lib64; do
-      [ -d "$_court_dir" ] || continue
+    for _court_dir in $_court_dirs; do
       for _court_f in "$_court_dir"/$_court_pat; do
         [ -e "$_court_f" ] || continue
         ln -sfn "$_court_f" "$_court_shim_root/$(basename "$_court_f")"
-        _court_linked=$((_court_linked + 1))
       done
     done
   done
+
+  # Count what actually sits in the shim dir (truth), not ln attempts.
+  _court_linked=$(find "$_court_shim_root" -maxdepth 1 -type l | wc -l | tr -d ' ')
 
   if [ "$_court_linked" -eq 0 ]; then
     echo "court-cuda-shim: WARNING: no NVIDIA driver libs matched under /usr/lib{,64}; llama_supports_gpu_offload() may stay False" >&2

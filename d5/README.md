@@ -9,7 +9,11 @@ House loads models **in-process** via Python bindings (Poet, Familiar, Spockette
 
 **D5.4:** Court build passed runtime-deps then failed checkPhase: 82 passed, 3 ERROR (`LocalEntryNotFoundError` from huggingface_hub — sandbox has no network). Appended `test_grammar_sampling_safety`, `test_logit_bias`, `test_custom_logits_processor` to `disabledTests` (same idiom as stock `test_real_model` / `test_real_llama`). Left `doCheck` on so the rest still run.
 
-**D5.5:** Court measured `llama_supports_gpu_offload()` False with bare nix python because `libggml-cuda.so` resolved `libcuda.so.1` to the nixpkgs **stub**. True when a directory of **driver-only** symlinks from `/usr/lib` (`libcuda`, `libnvidia-ptxjitcompiler`, `libnvidia-ml`, `libnvidia-nvvm`) is prepended to `LD_LIBRARY_PATH`. Do **not** put all of `/usr/lib` (Court: nix python then loads Arch glibc → `GLIBC_PRIVATE`). D5.5 adds a `shellHook` shim (NixOS `/run/opengl-driver/lib` if present, else Arch shim under `$XDG_RUNTIME_DIR`) plus `court-llama-env` wrapper. **Package unchanged.** **Untested on Nikola VM (no NVIDIA)** — Court re-runs on the rig.
+**D5.5:** Court measured `llama_supports_gpu_offload()` False with bare nix python because `libggml-cuda.so` resolved `libcuda.so.1` to the nixpkgs **stub**. True when a directory of **driver-only** symlinks from `/usr/lib` (`libcuda`, `libnvidia-ptxjitcompiler`, `libnvidia-ml`, `libnvidia-nvvm`) is prepended to `LD_LIBRARY_PATH`. Do **not** put all of `/usr/lib` (Court: nix python then loads Arch glibc → `GLIBC_PRIVATE`). D5.5 adds a `shellHook` shim (NixOS `/run/opengl-driver/lib` if present, else Arch shim under `$XDG_RUNTIME_DIR`) plus `court-llama-env` wrapper. **Package unchanged.**
+
+**D5.5 accepted on the rig (FACT, Court 2026-09-24 ~22:40):** `nix develop .#llama-cuda` → import `0.3.49`, offload **True**; `ggml_cuda_init` saw all three cards (5070 Ti, 4060 Ti, 5060 Ti). Same shell with `LD_LIBRARY_PATH` cleared → offload **False** (negative control). `court-llama-env` on that cleared env → offload **True** again; driver libs only; sweeps old links first.
+
+**D5.5.1 (this commit):** Court found the shim printed "24 links" while the directory held **12**, because on Arch `/usr/lib64` is a symlink to `/usr/lib` and the loop linked every file twice (`ln -sfn` overwrote). Harmless but the count lied ×2. Shim now dedupes search roots by `realpath` and reports the **final** link count in the shim directory. Still untestable for GPU offload on Nikola’s VM (no NVIDIA).
 
 
 
