@@ -1,4 +1,4 @@
-# D5.5 — JamePeng llama-cpp-python CUDA shell + Arch NVIDIA driver shim.
+# D5.6 — JamePeng llama-cpp-python 0.4.0 CUDA shell + Arch NVIDIA driver shim.
 # Imported by flake with a pkgs set that has config.allowUnfree = true
 # (CUDA toolkit is unfree). Do not use the flake's default pkgs here.
 #
@@ -52,9 +52,9 @@ pkgs.mkShell {
     source ${driverShimLib}
     court_cuda_driver_shim_setup || true
 
-    echo "D5.5 llama-cuda: python (JamePeng llama_cpp 0.3.49) + llama-server (GGML_CUDA)."
-    echo "  Src: JamePeng fork @ 0.3.49 with fetchSubmodules (vendor/llama.cpp)."
-    echo "  Patches: d5/patches/*.patch applied at build (empty by default — House work)."
+    echo "D5.6 llama-cuda: python (JamePeng llama_cpp 0.4.0) + llama-server (GGML_CUDA)."
+    echo "  Src: JamePeng fork @ 0.4.0 (5c83af7) with fetchSubmodules (vendor/llama.cpp)."
+    echo "  Patches: d5/patches/*.patch (two-patch contract: logits_all_draft + stopping_word; clean_continuation upstream in 0.4.0)."
     echo "  Driver shim: auto on enter; or: court-llama-env <cmd>  (driver libs only)."
     echo "  Try: python -c 'import llama_cpp; print(llama_cpp.__version__, llama_cpp.llama_supports_gpu_offload())'"
     echo "  Try: llama-server -m /path/to/model.gguf -ngl 99  # -ngl guess: offload all layers"

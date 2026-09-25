@@ -54,7 +54,7 @@
           inherit pkgs;
           thisPeer = "conduit";
         };
-        # D5.2: JamePeng llama-cpp-python 0.3.49 CUDA (empty d5/patches/). Heavy to *build* without GPU cache.
+        # D5.6: JamePeng llama-cpp-python 0.4.0 CUDA (empty d5/patches/). Heavy to *build* without GPU cache.
         llama-cpp-python-cuda = import ./d5/llama-cpp-python.nix {
           pkgs = pkgsCuda;
           patchesDir = ./d5/patches;
@@ -98,7 +98,7 @@
             wireguard-tools
           ];
         };
-        # D5.2: CUDA JamePeng llama-cpp-python 0.3.49 + llama-server for the Arch rig (see d5/README.md).
+        # D5.6: CUDA JamePeng llama-cpp-python 0.4.0 + llama-server for the Arch rig (see d5/README.md).
         llama-cuda = import ./d5/shell.nix { pkgs = pkgsCuda; };
         d5 = self.devShells.${system}.llama-cuda;
         # D6.3: Court/Conscia env-pin scaffold (composes D5 via inputsFrom; see d6/03-env-pin.md).

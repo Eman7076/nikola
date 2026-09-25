@@ -27,8 +27,8 @@ nix run home-manager/release-25.05 -- switch --flake .#box -b backup
 | **D2 / D2.1 / D2.2.1** | Accepted (rig QEMU) | [`d2/`](./d2/) controller LUKS + disko; disko pinned **v1.12.0** |
 | **D3 / D3.1** | Accepted | [`d3/`](./d3/) WireGuard mesh + wg-quick pkgs + IPv6-first notes — Court owns rollout |
 | **D4** | Accepted | [`d4/`](./d4/) ten ranked **controller** ideas |
-| **D5.1–D5.4** | Accepted (rig) | [`d5/`](./d5/) JamePeng `llama-cpp-python` **0.3.49** CUDA + patches hook + pillow + sandbox-safe tests |
-| **D5.5** | On `main`; Court GPU re-smoke | [`d5/`](./d5/) Arch NVIDIA **driver-only** shim (`shellHook` + `court-llama-env`) |
+| **D5.1–D5.5.1** | Accepted (rig) | [`d5/`](./d5/) JamePeng `llama-cpp-python` **0.3.49** CUDA + patches hook + pillow + sandbox-safe tests + Arch **driver-only** shim |
+| **D5.6** | This cut | [`d5/`](./d5/) bump to JamePeng **0.4.0** (`5c83af7`); shim unchanged; patch contract **two** (clean_continuation upstream); GPU/MTP = Court re-smoke |
 | **D6** | Pitch on `main` | [`d6/PITCH.md`](./d6/PITCH.md) ten ranked **fleet** ideas — reproducible / measurable bias |
 | **D6.1** | Landed (Court apply) | [`d6/01-window-luks-apply.md`](./d6/01-window-luks-apply.md) controller LUKS migration runbook (was **window** until 2026-09-25) — **Nikola does not operate controller** |
 | **D6.2** | Landed (module + checks) | [`d6/02-one-bell.md`](./d6/02-one-bell.md) + [`d6/one-bell/`](./d6/one-bell/) fan-in oneshot/timer — feeds existing dead-man; no `Persistent=true` |

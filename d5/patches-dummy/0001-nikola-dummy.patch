@@ -1,11 +1,11 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nikola <nikola@grok-bot.local>
-Date: Thu, 24 Sep 2026 03:50:00 -0500
-Subject: [PATCH] Nikola D5.2 dummy — prove patches/ hook applies
+Date: Fri, 25 Sep 2026 03:30:00 -0500
+Subject: [PATCH] Nikola D5.6 dummy — prove patches/ hook applies
 
 No-op comment only. Court drops real House patches into d5/patches/;
 this file lives under patches-dummy/ for the dummy-patch check only.
-Aligned to JamePeng 0.3.49 __init__.py (was 0.3.9 under D5.1).
+Aligned to JamePeng 0.4.0 __init__.py (was 0.3.49 under D5.2–D5.5).
 
 --- a/llama_cpp/__init__.py
 +++ b/llama_cpp/__init__.py
@@ -13,5 +13,5 @@ Aligned to JamePeng 0.3.49 __init__.py (was 0.3.9 under D5.1).
  from .llama_cpp import *
  from .llama import *
  
-+# Nikola D5.2 dummy patch — no-op; proves local patches apply before build.
- __version__ = "0.3.49"
++# Nikola D5.6 dummy patch — no-op; proves local patches apply before build.
+ __version__ = "0.4.0"

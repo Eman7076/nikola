@@ -125,9 +125,9 @@ Contract 001 is **accepted through D5.4**; **D5.5** (Arch NVIDIA driver shim) is
 
 ## 8. Land House llama patches as real diffs; prove D5 patchPhase on the rig
 
-**Serves:** Igris / House in-process llama bodies; Conscia-adjacent stacks that share the JamePeng 0.3.49 pin; finishes the D5 chain’s unpaid House half.
+**Serves:** Igris / House in-process llama bodies; Conscia-adjacent stacks that share the JamePeng **0.4.0** pin (D5.6); finishes the D5 chain’s unpaid House half.
 
-**Makes true that is false today:** `clean_continuation`, `logits_all_draft`, and `stopping_word` exist as **real `.patch` files** against rev `34c1bfb` under `d5/patches/`, and `nix build .#llama-cpp-python-cuda` applies them in patchPhase — instead of a line-editing Python script nobody can diff in git.
+**Makes true that is false today:** the **two** remaining House diffs (`logits_all_draft`, `stopping_word`) exist as **real `.patch` files** against rev `5c83af7` under `d5/patches/` (`clean_continuation` is upstream in 0.4.0), and `nix build .#llama-cpp-python-cuda` applies them in patchPhase — instead of a line-editing Python script nobody can diff in git.
 
 **Cost (guess):** Nikola **1–3 h** after patches land (sanity-read hunks, keep hook docs accurate, optional dummy-vs-real check note). **House/Court** owns rendering the diffs — Spock already said that was never Nikola’s. Court **one CUDA rebuild** on the rig (known cost band from D5.2–D5.4).
 
@@ -173,8 +173,8 @@ Contract 001 is **accepted through D5.4**; **D5.5** (Arch NVIDIA driver shim) is
 
 **Explicit non-goals in this pitch:** Calypso; operating room; anything that needs a secret to evaluate; phone-home telemetry; Nikola holding Court keys or souls.
 
-**D5.5 reminder for Court:** on the rig, `nix develop .#llama-cuda` then  
+**D5.6 reminder for Court:** on the rig, `nix develop .#llama-cuda` then  
 `python -c 'import llama_cpp; print(llama_cpp.__version__, llama_cpp.llama_supports_gpu_offload())'`  
-— expect `0.3.49 True` with the proprietary driver present. Untested on Nikola’s VM (no NVIDIA).
+— expect `0.4.0 True` with the proprietary driver present + shim. Nikola VM proved import `0.4.0` from the cu131 wheel only; GPU/MTP = Court re-smoke.
 
 No security certification claim. Guesses are labeled. This document does not open Contract 002 by itself; it is the menu.

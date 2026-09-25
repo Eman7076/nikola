@@ -36,9 +36,9 @@ Flake outputs:
 
 | Item | How | Honesty |
 |------|-----|---------|
-| JamePeng `llama-cpp-python` **0.3.49** + CUDA | Via D5 package (`d5/llama-cpp-python.nix`) through `inputsFrom` | Fact: same pin as D5.2–D5.5 |
+| JamePeng `llama-cpp-python` **0.4.0** + CUDA | Via D5 package (`d5/llama-cpp-python.nix`) through `inputsFrom` | Fact: D5.6 pin (was 0.3.49 through D5.5) |
 | `CUDAARCHS` / cmake arch string (incl. **89 / 120**) | Surfaced as `PASS_THRU_CUDAARCHS` from nixpkgs 25.05 flags; build-time set in D5 | Fact for this nixpkgs pin |
-| House patch directory contract | `COURT_LLAMA_PATCHES_DIR` → `d5/patches/` (empty + `.gitkeep` until House drops diffs) | Fact: hook exists; patches not yet landed (pitch idea 8) |
+| House patch directory contract | `COURT_LLAMA_PATCHES_DIR` → `d5/patches/` (empty + README; **two** remaining diffs — clean_continuation upstream in 0.4.0) | Fact: hook exists; Court drops logits_all_draft + stopping_word (pitch idea 8) |
 | Arch / NixOS **driver-only** shim | Same `court-cuda-driver-shim.sh` as D5.5 (`shellHook` sources it) | Fact: D5.5 lesson — never whole `/usr/lib` |
 | nixpkgs channel | Flake input **nixpkgs 25.05** (+ scoped `pkgsCuda` / `allowUnfree`) | Fact for this contractor flake; Court may track 26.05 later |
 
@@ -59,7 +59,7 @@ Flake outputs:
 
 D5 already solved the hardest reusable pieces for “Python that can see CUDA llama”:
 
-1. **Package** — JamePeng 0.3.49, submodules, pillow PBI, sandbox-safe disabledTests, `CUDAARCHS`.
+1. **Package** — JamePeng 0.4.0 (`5c83af7`), submodules, pillow PBI, sandbox-safe disabledTests, `CUDAARCHS`.
 2. **Shell** — `devShells.llama-cuda` / `.#d5` with toolkit + `llama-server` kept.
 3. **D5.5 shim** — host driver libs only; Court measured `llama_supports_gpu_offload()` True with that pattern on the rig.
 
@@ -85,7 +85,7 @@ nix develop .#llama-cuda
 
 ```bash
 python -c 'import llama_cpp; print(llama_cpp.__version__, llama_cpp.llama_supports_gpu_offload())'
-# expect: 0.3.49 True  — with proprietary driver present + shim
+# expect: 0.4.0 True  — with proprietary driver present + shim
 ```
 
 ---
@@ -108,15 +108,15 @@ Nikola cannot prove these on this VM. Court should record answers (even as a sho
 - [ ] Any Court-specific `CUDA_VISIBLE_DEVICES` / tensor-split habits for multi-GPU
 - [ ] Re-smoke: `llama_supports_gpu_offload()` under `nix develop .#court-env` (expect True)
 
-### Three llama patches → `d5/patches/`
+### Two llama patches → `d5/patches/` (D5.6)
 
-Pitch idea 8 / D5 hook. Names from House (fact of ask):
+Pitch idea 8 / D5 hook. Court 2026-09-25: **`clean_continuation` is upstream in 0.4.0** — contract is **two**, not three.
 
-- [ ] `clean_continuation`
-- [ ] `logits_all_draft`
-- [ ] `stopping_word`
+- [x] `clean_continuation` — upstream in 0.4.0 (do not re-drop)
+- [ ] `logits_all_draft` — still applies / still passes (Court)
+- [ ] `stopping_word` — still applies / still passes (Court)
 
-Drop real `.patch` files against rev `34c1bfb` into [`d5/patches/`](../d5/patches/). Dummy hunks stay in `d5/patches-dummy/` only.
+Drop the two remaining real `.patch` files against rev `5c83af7` into [`d5/patches/`](../d5/patches/). See [`d5/patches/README.md`](../d5/patches/README.md). Dummy hunks stay in `d5/patches-dummy/` only.
 
 ### Conscia / Igris extras (after base smoke)
 

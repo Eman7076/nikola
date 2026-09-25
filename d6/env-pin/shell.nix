@@ -59,7 +59,7 @@ pkgs.mkShell {
 
     echo "D6.3 court-env (scaffold / first cut — incomplete on purpose)"
     echo "  Serves: novacourt; Conscia when lit; Igris local body"
-    echo "  Base: D5.5 llama-cuda via inputsFrom (JamePeng 0.3.49 + driver shim)"
+    echo "  Base: D5.6 llama-cuda via inputsFrom (JamePeng 0.4.0 + driver shim)"
     echo "  Patches dir (House → Court): $COURT_LLAMA_PATCHES_DIR"
     echo "  CUDAARCHS (from nixpkgs pin): $PASS_THRU_CUDAARCHS"
     echo "  Extra Python deps: d6/env-pin/extra-python-deps.nix (empty until Court inventory)"
