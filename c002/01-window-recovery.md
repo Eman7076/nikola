@@ -21,6 +21,8 @@
 
 **Ordering:** Recovery first (this doc), then LUKS ([`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md)). Do not treat a beautiful unread runbook as a substitute for encryption — parachute, not harness ([`d6/PITCH.md`](../d6/PITCH.md) §10).
 
+> **Rehearsal status (FACT — Spock, 2026-09-25):** **PASSED.** Window ~**22:2x–23:3x** America/Chicago; **Eli’s hands** on controller (Nikola did **not** run metal). §7 steps **1–6** green; D6.1 stop rule **satisfied**. Findings 1–4 below are folded into this revision. **Do NOT start D6.1 apply** — still Eli’s decision/hands. Passed: Ventoy from controller boot menu; SystemRescue **13.02 NORMAL mode** → root shell; `check-stick` ok=8 missing=0 (live + earlier on rig); eMMC RO mount **`mmcblk1p2`** (NixOS root), unmounted untouched; fleet-flake tarball rev **`76f1716`** extracted (`flake.nix`, `flake.lock`, `hosts/`, `home/`). Device names `/dev/sda1`, `mmcblk1p2` are **FACT** from this Court night — **GUESS** if other hardware differs.
+
 ---
 
 ## 0. Ownership / labels
@@ -58,6 +60,10 @@ Parachute **before** D2 LUKS on controller’s ~28.5 GB eMMC ([`d6/01-window-l
 **FACT:** The fleet already has a **128 GB Ventoy stick** holding **five OSes** plus the **Porteus toolkit**. It is the fleet’s fifth member. Section 2 is a **checklist against that real stick**, not a “build Ventoy from scratch” guide.
 
 Nikola does **not** redistribute ISOs. Court keeps the existing layout; **adds** the `court-recovery/` tree (and any Court-chosen pin/tarball files). Do **not** wipe or replace the five OS slots to satisfy this runbook.
+
+**EJECT, never pull (COURT — FACT from 2026-09-25 rehearsal):** Before removing the stick from any host (rig, controller, live ISO), **unmount all three partitions** and **power the device off** (or cleanly eject), then remove. **Bold rule:** do not yank the stick while mounted.
+
+**Rehearsal slip (FACT — Eli, same night):** Stick was pulled from the **rig** without unmount → kernel logged `"lost sync page write"` on **`sda1` block 0**. Data was actually OK (`HASHES` verified). Recorded so nobody repeats it — still treat dirty removal as a hash-recheck event, not as “probably fine.”
 
 ### 2.1 Existing layout (FACT) + additive tree (COURT)
 
@@ -246,29 +252,57 @@ If eMMC fails or Court needs a clean reinstall **before** idea 1 encrypts the di
 
 Do this on **controller** before any disko wipe:
 
+> **Rehearsal status (FACT — Spock / Eli hands, 2026-09-25 ~22:2x–23:3x America/Chicago):** **PASSED** — §7 steps **1–6** green. Findings 1–4 folded into this revision. D6.1 stop rule **unblocked** by that PASS, but **do not** treat this as go-now for apply — still **Eli’s night / Eli’s hands**. Nikola drafts only; Nikola did **not** operate controller.
+
 1. [ ] **Confirm** the existing 128 GB Ventoy stick still boots its five OS + Porteus toolkit slots Court cares about (do **not** rebuild Ventoy unless Court already planned to).
 2. [ ] **Add** `court-recovery/` (edited `manifest.txt`, `FLAKE_PIN.txt`, `HASHES.txt`, `check-stick.sh`, fleet-flake tarball at pinned rev). Leave sibling ISOs alone.
-3. [ ] Boot the stick on **this** Chromebook; confirm firmware/boot menu reaches Ventoy and the slots Court needs for recovery start (or document which slots fail — GUESS: some Chromebook recovery images need specific firmware paths).
-4. [ ] From the live environment (or from another machine with the stick mounted), run:
+3. [ ] **Boot on this Chromebook — Ventoy NORMAL mode only (FACT, 2026-09-25 rehearsal):**
+   - From the controller firmware/boot menu, enter Ventoy and start **SystemRescue 13.02** (or Court’s chosen recovery ISO) in **NORMAL** mode → root shell.
+   - **Do not use Ventoy MEMDISK (Ctrl+D).** **FACT:** MEMDISK **breaks** SystemRescue boot — initramfs cannot find the medium → busybox emergency shell. (`Failed to probe lspcon` is a **harmless** Chromebook Intel graphics warning; ignore it.)
+   - **NORMAL mode is the mode.** SystemRescue’s own **“copy to RAM”** boot option is a **different** thing from Ventoy Memdisk — do not confuse them.
+   - Confirm firmware reaches Ventoy and the slots Court needs (or document which slots fail — GUESS: some Chromebook recovery images need specific firmware paths).
+4. [ ] **Mount the stick from the live system, then run the checker (COURT):**
+
+   Device names below are **FACT** from the 2026-09-25 Court night (`/dev/sda1` = stick first partition under that boot). **GUESS** if other hardware enumerates differently — confirm with `lsblk` first.
 
    ```bash
-   bash court-recovery/check-stick.sh /path/to/stick-root
+   mkdir -p /mnt/stick
+   # First try — plain mount (often fails under Ventoy NORMAL mode):
+   mount -o ro /dev/sda1 /mnt/stick
+   # FACT (rehearsal, twice): plain mount fails with
+   #   fsconfig() failed: /dev/sda1: Can't open blockdev
+   # still fails after: dmsetup remove ventoy
+   # Working route:
+   L=$(losetup -r -f --show /dev/sda1); mount -o ro "$L" /mnt/stick
    ```
 
-   Expect all `OK` lines for **listed** paths; fix `MISSING` before claiming rehearsal pass. Extra unlisted ISOs must **not** fail the check.
+   **Confirm the mount before reading anything** — empty mount-point dirs look like empty trees; a silent failed mount → false “`court-recovery` missing” alarm:
+
+   ```bash
+   findmnt /mnt/stick   # must show the stick (or loop) source; do not proceed if empty
+   ls /mnt/stick/court-recovery
+   bash /mnt/stick/court-recovery/check-stick.sh /mnt/stick
+   ```
+
+   Expect all `OK` lines for **listed** paths (rehearsal: **ok=8 missing=0**); fix `MISSING` before claiming rehearsal pass. Extra unlisted ISOs must **not** fail the check. Checker also passed **ok=8** earlier on the rig (**FACT**).
 5. [ ] **Dry run unlock-or-mount without wiping:**
    - Pre-LUKS (today): mount eMMC read-only if possible; list trees; unmount. Do **not** run `disko --mode disko`.
+   - **FACT (2026-09-25):** RO mount of NixOS root on **`mmcblk1p2`**, inspected, unmounted untouched.
    - Post-LUKS (after idea 1): practice `cryptsetup open` + subvol mounts on a **spare** or accept that first live unlock after apply *is* the practice — still rehearse stick boot + checker **before** apply.
-6. [ ] Practice extracting the fleet-flake tarball to a throwaway directory (**default**). Optionally, **if mesh is up**, practice clone from the rig bare repo — demoted path only.
-7. [ ] Record pass/fail + date + who in `court-recovery/NOTES.txt` on the stick (and/or Court ops log). Example line:
+6. [ ] Practice extracting the fleet-flake tarball to a throwaway directory (**default**). **FACT (2026-09-25):** tarball at rev **`76f1716`** extracted — tree contained `flake.nix`, `flake.lock`, `hosts/`, `home/`. Optionally, **if mesh is up**, practice clone from the rig bare repo — demoted path only.
+7. [ ] Record pass/fail + date + who in `court-recovery/NOTES.txt` on the stick (and/or Court ops log).
+
+   **NOTES guidance (COURT — Nikola does not operate the stick):** `NOTES.txt` already has a **partial first-pass log** from this night. The formal **PASS** line goes in when the stick **next sits in the rig** — Nikola does not write that file on Court media. Example line when Court appends:
 
    ```text
-   2026-09-25 rehearsal PASS controller Ventoy+check-stick+fleet-tarball — <name>
+   2026-09-25 rehearsal PASS controller Ventoy+SystemRescue-NORMAL+check-stick+fleet-tarball-76f1716 — Eli (Spock witness)
    ```
 
-8. [ ] Only then continue to [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) destructive steps.
+8. [ ] Only then is D6.1’s stop rule satisfied. **Still Eli’s decision** whether/when to start [`d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) destructive steps — this PASS is **not** an apply go-order.
 
-**NIKOLA:** may prove the checker against a fake tree via `checks.x86_64-linux.c002-stick-check`. That is **not** a substitute for Court boot rehearsal.
+**Eject reminder:** when finished, **unmount all three stick partitions**, power off / clean eject, **then** remove (§2). Never pull while mounted.
+
+**NIKOLA:** may prove the checker against a fake tree via `checks.x86_64-linux.c002-stick-check`. That is **not** a substitute for Court boot rehearsal. Nikola did **not** run this rehearsal on metal.
 
 ---
 
@@ -302,3 +336,4 @@ Rollback table in D6.1 already points at Porteus/Ventoy; treat **this** Contract
 - **Nikola did not** boot Ventoy, unlock LUKS, restore souls, or operate controller/room.
 - ISO URLs are intentionally omitted so this repo cannot be read as redistributing proprietary images — Court already holds the stick media.
 - Corrections vs first C002.1 draft (Spock 2026-09-25): **controller** rename + history line; fleet flake **stick tarball default** (network demoted); **additive** checklist on the **existing** 128 GB stick.
+- Fold-in after Court rehearsal PASS (Spock 2026-09-25, Eli hands): Ventoy **NORMAL** (not MEMDISK); stick mount via `losetup -r` when plain `mount` fails; `findmnt` before reads; **eject never pull**; device names `/dev/sda1` / `mmcblk1p2` recorded as Court-night FACT.

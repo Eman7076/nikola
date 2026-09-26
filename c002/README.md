@@ -10,8 +10,8 @@ Contract 001 (D1–D5.5 + D6.1–D6.4) is accepted. Spock/Eli ordered Contract 0
 
 | ID | Status | Path | Notes |
 |----|--------|------|-------|
-| **C002.1 / D1** | Corrected | [`01-window-recovery.md`](./01-window-recovery.md) + [`check-stick.sh`](./check-stick.sh) | Ventoy/Porteus recovery for **controller**; additive check on existing 128 GB stick; fleet-flake tarball default |
-| Idea 1 (D2 LUKS apply) | Drafted; wait for rehearsal | [`../d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) | Rehearse C002.1 **before** destructive apply |
+| **C002.1 / D1** | **Rehearsal PASSED** 2026-09-25 (Eli hands; Spock); runbook folded | [`01-window-recovery.md`](./01-window-recovery.md) + [`check-stick.sh`](./check-stick.sh) | Ventoy/Porteus recovery for **controller**; §7 steps 1–6 green; NORMAL mode + losetup mount + eject rule folded in; D6.1 stop rule satisfied — **apply still Eli’s decision** |
+| Idea 1 (D2 LUKS apply) | Drafted; stop rule cleared; **await Eli go** | [`../d6/01-window-luks-apply.md`](../d6/01-window-luks-apply.md) | C002.1 rehearsal PASS unblocks by stop rule — **do not** treat as apply go-now |
 | Idea 2∪4 | Later | — | Not implemented here |
 | Idea 3 | Waits | — | Not implemented here |
 | Idea 8 (House) | Later | — | Not implemented here |
