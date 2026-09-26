@@ -63,7 +63,7 @@ Nikola does **not** redistribute ISOs. Court keeps the existing layout; **adds**
 
 **EJECT, never pull (COURT — FACT from 2026-09-25 rehearsal):** Before removing the stick from any host (rig, controller, live ISO), **unmount all three partitions** and **power the device off** (or cleanly eject), then remove. **Bold rule:** do not yank the stick while mounted.
 
-**Rehearsal slip (FACT — Eli, same night):** Stick was pulled from the **rig** without unmount → kernel logged `"lost sync page write"` on **`sda1` block 0**. Data was actually OK (`HASHES` verified). Recorded so nobody repeats it — still treat dirty removal as a hash-recheck event, not as “probably fine.”
+**Rehearsal slip (FACT — Spock, same night):** Stick was pulled from the **rig** without unmount → kernel logged `"lost sync page write"` on **`sda1` block 0**. Data was actually OK (`HASHES` verified). Recorded so nobody repeats it — still treat dirty removal as a hash-recheck event, not as “probably fine.”
 
 ### 2.1 Existing layout (FACT) + additive tree (COURT)
 
